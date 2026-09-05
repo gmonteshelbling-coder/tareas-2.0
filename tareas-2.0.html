@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tareas 2.0 — Club Independiente de Tandil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@500;600&display=swap" rel="stylesheet">
+
+<script>
+/* ==========================================================================
+   CONFIGURACIÓN — lo único que tenés que tocar
+   ========================================================================== */
+
+// URL de la aplicación web de Apps Script. Termina en /exec.
+const API_URL = "";
+
+// Si pusiste CLAVE_COMPARTIDA en el Codigo.gs, repetila acá igual.
+const CLAVE = "";
+
+// Pegá acá la URL del escudo real del club, o el base64 ("data:image/png;base64,...").
+const ESCUDO = "";
+
+const INSTITUCION = "Club Independiente de Tandil";
+
+// Las fotos se achican antes de subirse a Drive.
+const FOTO_LADO_MAX = 1400;
+const FOTO_CALIDAD  = 0.72;
+</script>
+
+<style>
+:root{
+  /* Color institucional. Si el rojo no es el exacto, cambiá solo esta línea. */
+  --club: #C8102E;
+  --club-suave: #FBEAED;
+
+  --tinta: #191D21;
+  --tinta-media: #565F68;
+  --tinta-tenue: #8B959E;
+  --fondo: #EDEFF1;
+  --hoja: #FFFFFF;
+  --linea: #DDE1E5;
+  --linea-fuerte: #C4CBD1;
+
+  --ok: #17703C;
+  --ok-suave: #E7F2EB;
+  --curso: #B26A00;
+  --trabada: #9A2C2C;
+
+  --radio: 3px;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+
+body{
+  margin:0;background:var(--fondo);color:var(--tinta);
+  font-family:"Archivo","Helvetica Neue",Arial,sans-serif;
+  font-size:15px;line-height:1.45;
+}
+
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--club);outline-offset:2px}
+[hidden]{display:none !important}
+
+.envoltorio{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+
+/* ---------- Franja de conexión ---------- */
+
+.franja{
+  padding:9px 20px;font-size:13.5px;text-align:center;
+  background:var(--club);color:#fff;
+}
+
+.franja.trabajando{background:var(--tinta)}
+
+/* ---------- Cabecera ---------- */
+
+.cabecera{background:var(--hoja);border-bottom:3px solid var(--club);margin-bottom:22px}
+
+.cabecera-interior{
+  max-width:1080px;margin:0 auto;padding:20px;
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+}
+
+.escudo{width:64px;height:64px;flex:none;object-fit:contain}
+
+.escudo-vacio{
+  width:64px;height:64px;flex:none;
+  border:1px dashed var(--linea-fuerte);border-radius:var(--radio);
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-family:"Archivo Narrow",Arial,sans-serif;
+  font-size:10px;line-height:1.2;color:var(--tinta-tenue);padding:4px;
+}
+
+.identidad{flex:1 1 220px;min-width:0}
+
+.institucion{
+  font-family:"Archivo Narrow",Arial,sans-serif;
+  font-weight:600;font-size:13px;letter-spacing:.04em;
+  color:var(--tinta-media);margin:0 0 1px;
+}
+
+.titulo{margin:0;font-size:27px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+
+.sesion{
+  margin:5px 0 0;font-size:13px;color:var(--tinta-media);
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+}
+
+.sesion strong{color:var(--tinta);font-weight:600}
+
+.sesion button{
+  border:none;background:none;color:var(--club);cursor:pointer;
+  font-size:13px;padding:1px 3px;border-radius:var(--radio);
+}
+
+.sesion button:hover{background:var(--club-suave)}
+
+.resumen{display:flex;gap:24px;flex:none;padding-left:22px;border-left:1px solid var(--linea)}
+
+.resumen-dato{min-width:52px}
+
+.resumen-valor{
+  display:block;font-size:29px;font-weight:700;line-height:1;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;
+}
+
+.resumen-valor.alerta{color:var(--club)}
+
+.resumen-rotulo{
+  display:block;margin-top:4px;max-width:9ch;
+  font-family:"Archivo Narrow",Arial,sans-serif;
+  font-size:12px;line-height:1.25;color:var(--tinta-media);
+}
+
+/* ---------- Barra ---------- */
+
+.barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+
+.boton{
+  border:1px solid var(--linea-fuerte);background:var(--hoja);color:var(--tinta);
+  border-radius:var(--radio);padding:8px 14px;cursor:pointer;font-weight:500;
+}
+
+.boton:hover{border-color:var(--tinta-tenue)}
+.boton:disabled{opacity:.5;cursor:default}
+
+.boton-principal{background:var(--club);border-color:var(--club);color:#fff;font-weight:600}
+.boton-principal:hover{background:#A80C26;border-color:#A80C26}
+
+.boton-tenue{border-color:transparent;background:transparent;color:var(--tinta-media);padding:8px 10px}
+.boton-tenue:hover{color:var(--tinta);background:rgba(25,29,33,.05)}
+
+.espaciador{flex:1}
+
+/* ---------- Portada ---------- */
+
+.rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:14px}
+
+.cuadro{
+  display:flex;flex-direction:column;
+  background:var(--hoja);border:1px solid var(--linea);
+  border-top:4px solid var(--tinta-tenue);border-radius:var(--radio);
+  padding:15px 16px 0;text-align:left;cursor:pointer;min-height:158px;
+  font:inherit;color:inherit;
+}
+
+.cuadro:hover{border-color:var(--linea-fuerte);border-top-color:var(--tinta)}
+.cuadro.completo{border-top-color:var(--ok)}
+.cuadro.completo:hover{border-top-color:var(--ok)}
+.cuadro.con-vencidas{border-top-color:var(--club)}
+.cuadro.vacio-area{border-top-color:var(--linea-fuerte);cursor:default}
+.cuadro.vacio-area:hover{border-color:var(--linea)}
+
+.cuadro-nombre{
+  font-family:"Archivo Narrow",Arial,sans-serif;
+  font-weight:600;font-size:16px;line-height:1.2;margin:0 0 12px;
+}
+
+.cuadro-cifra{display:flex;align-items:baseline;gap:7px;font-variant-numeric:tabular-nums}
+.cuadro-numero{font-size:38px;font-weight:700;line-height:.95;letter-spacing:-.03em}
+.cuadro.completo .cuadro-numero{color:var(--ok)}
+.cuadro.con-vencidas .cuadro-numero{color:var(--club)}
+.cuadro-de{font-size:15px;color:var(--tinta-media)}
+
+.cuadro-rotulo{
+  font-family:"Archivo Narrow",Arial,sans-serif;
+  font-size:13px;color:var(--tinta-media);margin:5px 0 0;
+}
+
+.cuadro-alerta{margin:7px 0 0;font-size:13px;font-weight:600;color:var(--club)}
+.cuadro-pie{margin-top:auto;padding-top:14px}
+.barrita{height:4px;background:var(--linea);border-radius:2px;overflow:hidden;margin:0 -16px}
+.barrita span{display:block;height:100%;background:var(--ok)}
+.cuadro-sin{color:var(--tinta-tenue);font-size:14px;margin:0}
+
+/* ---------- Migas ---------- */
+
+.migas{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+
+.volver{
+  border:1px solid var(--linea-fuerte);background:var(--hoja);
+  border-radius:var(--radio);padding:6px 12px;cursor:pointer;font-weight:500;
+}
+
+.volver:hover{border-color:var(--tinta-tenue)}
+
+.migas h2{margin:0;font-family:"Archivo Narrow",Arial,sans-serif;font-weight:600;font-size:21px}
+.migas .area-cuenta{font-size:14px}
+
+/* ---------- Filtros ---------- */
+
+.filtros{
+  background:var(--hoja);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:12px 14px;margin-bottom:20px;
+  display:flex;gap:20px;flex-wrap:wrap;align-items:center;
+}
+
+.filtro-grupo{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+.filtro-titulo{
+  font-family:"Archivo Narrow",Arial,sans-serif;
+  font-size:12px;color:var(--tinta-media);margin-right:2px;
+}
+
+.ficha{
+  border:1px solid var(--linea-fuerte);background:var(--hoja);
+  border-radius:100px;padding:4px 11px;font-size:13px;cursor:pointer;white-space:nowrap;
+}
+
+.ficha:hover{border-color:var(--tinta-tenue)}
+.ficha[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+
+.busqueda{
+  flex:1 1 180px;min-width:140px;
+  border:1px solid var(--linea-fuerte);border-radius:var(--radio);
+  padding:7px 10px;background:var(--hoja);
+}
+
+.area-cuenta{font-size:13px;color:var(--tinta-media);font-variant-numeric:tabular-nums}
+
+/* ---------- Tarea ---------- */
+
+.tarea{
+  background:var(--hoja);border:1px solid var(--linea);border-top:none;
+  display:grid;grid-template-columns:6px 1fr auto;align-items:start;
+}
+
+.tarea:first-of-type{border-top:1px solid var(--linea)}
+.tarea.hecha .tarea-titulo{color:var(--tinta-tenue);text-decoration:line-through}
+
+.marca{width:6px;align-self:stretch;background:var(--linea-fuerte)}
+.tarea[data-estado="pendiente"] .marca{background:var(--tinta-tenue)}
+.tarea[data-estado="curso"] .marca{background:var(--curso)}
+.tarea[data-estado="hecha"] .marca{background:var(--ok)}
+.tarea[data-estado="trabada"] .marca{background:var(--trabada)}
+
+.tarea-cuerpo{padding:12px 14px;min-width:0}
+.tarea-titulo{font-weight:600;font-size:15.5px;margin:0 0 3px;overflow-wrap:anywhere}
+
+.tarea-detalle{
+  margin:0 0 7px;color:var(--tinta-media);font-size:14px;
+  max-width:68ch;overflow-wrap:anywhere;
+}
+
+.tarea-meta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--tinta-media)}
+
+.meta-responsable{font-weight:500;color:var(--tinta)}
+.meta-vence.vencida{color:var(--club);font-weight:600}
+.meta-vence.hoy{color:var(--curso);font-weight:600}
+.prioridad-alta{color:var(--club);font-weight:600}
+
+.compartida{
+  display:inline-flex;align-items:center;
+  border:1px solid var(--linea-fuerte);border-radius:100px;
+  padding:1px 9px;font-size:12.5px;color:var(--tinta-media);
+}
+
+.compartida.completa{border-color:var(--ok);color:var(--ok)}
+
+.cierre{
+  margin-top:10px;padding:10px 12px;
+  background:var(--ok-suave);border-left:3px solid var(--ok);
+  display:flex;gap:12px;align-items:flex-start;
+}
+
+.cierre-texto{flex:1;min-width:0;font-size:13.5px}
+.cierre-firma{font-weight:600;color:var(--ok)}
+.cierre-cuando{color:var(--tinta-media)}
+.cierre-obs{margin:5px 0 0;color:var(--tinta);max-width:64ch;overflow-wrap:anywhere}
+
+.cierre-foto{
+  flex:none;width:64px;height:64px;object-fit:cover;
+  border:1px solid var(--linea-fuerte);border-radius:var(--radio);
+  cursor:zoom-in;display:block;background:var(--linea);
+}
+
+.tarea-acciones{
+  padding:11px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
+}
+
+.selector-estado{
+  border:1px solid var(--linea-fuerte);border-radius:var(--radio);
+  padding:5px 8px;background:var(--hoja);font-size:13px;cursor:pointer;
+}
+
+.icono{
+  border:none;background:transparent;cursor:pointer;color:var(--tinta-tenue);
+  padding:5px 7px;border-radius:var(--radio);font-size:13px;
+}
+
+.icono:hover{color:var(--tinta);background:rgba(25,29,33,.06)}
+.icono.peligro:hover{color:var(--club);background:var(--club-suave)}
+
+/* ---------- Registro ---------- */
+
+.registro{background:var(--hoja);border:1px solid var(--linea);border-radius:var(--radio)}
+
+.renglon{
+  display:grid;grid-template-columns:150px 150px 1fr;gap:12px;
+  padding:10px 14px;border-bottom:1px solid var(--linea);font-size:13.5px;
+}
+
+.renglon:last-child{border-bottom:none}
+.renglon-cuando{color:var(--tinta-media);font-variant-numeric:tabular-nums}
+.renglon-quien{font-weight:600}
+.renglon-que{min-width:0;overflow-wrap:anywhere}
+.renglon-donde{color:var(--tinta-media)}
+
+/* ---------- Vacío ---------- */
+
+.vacio{
+  background:var(--hoja);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:44px 24px;text-align:center;
+}
+
+.vacio h2{margin:0 0 6px;font-size:18px;font-weight:600}
+.vacio p{margin:0 auto 16px;color:var(--tinta-media);max-width:48ch}
+
+/* ---------- Diálogos ---------- */
+
+dialog{
+  border:none;border-radius:var(--radio);padding:0;
+  width:min(600px,calc(100vw - 32px));
+  box-shadow:0 12px 40px rgba(25,29,33,.22);color:var(--tinta);
+}
+
+dialog::backdrop{background:rgba(25,29,33,.45)}
+
+.dialogo-cabecera{padding:18px 22px 12px;border-bottom:1px solid var(--linea)}
+.dialogo-cabecera h2{margin:0;font-size:19px;font-weight:600}
+.dialogo-cabecera p{margin:4px 0 0;font-size:13.5px;color:var(--tinta-media)}
+
+.dialogo-cuerpo{padding:18px 22px;max-height:66vh;overflow:auto}
+
+.dialogo-pie{
+  padding:14px 22px;border-top:1px solid var(--linea);
+  display:flex;gap:10px;justify-content:flex-end;background:#F8F9FA;
+}
+
+.campo{margin-bottom:15px}
+.campo:last-child{margin-bottom:0}
+
+.campo > label{
+  display:block;margin-bottom:5px;
+  font-family:"Archivo Narrow",Arial,sans-serif;
+  font-size:13px;color:var(--tinta-media);
+}
+
+.campo input[type="text"],.campo input[type="date"],.campo select,.campo textarea{
+  width:100%;border:1px solid var(--linea-fuerte);border-radius:var(--radio);
+  padding:8px 10px;background:var(--hoja);
+}
+
+.campo textarea{resize:vertical;min-height:70px}
+.campo-fila{display:flex;gap:12px;flex-wrap:wrap}
+.campo-fila .campo{flex:1 1 150px}
+.error{color:var(--club);font-size:13px;margin-top:6px}
+.pista{font-size:13px;color:var(--tinta-media);margin:6px 0 0}
+
+.zona-foto{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+.previa{
+  width:92px;height:92px;object-fit:cover;
+  border:1px solid var(--linea-fuerte);border-radius:var(--radio);display:block;
+}
+
+.selector-areas{border:1px solid var(--linea-fuerte);border-radius:var(--radio);overflow:hidden}
+
+.selector-areas-barra{
+  display:flex;gap:8px;align-items:center;
+  padding:8px 11px;background:#F8F9FA;border-bottom:1px solid var(--linea);
+  font-size:13px;color:var(--tinta-media);
+}
+
+.selector-areas-barra button{
+  border:none;background:none;color:var(--club);cursor:pointer;
+  font-size:13px;font-weight:500;padding:2px 4px;border-radius:var(--radio);
+}
+
+.selector-areas-barra button:hover{background:var(--club-suave)}
+
+.fila-area{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 11px;border-bottom:1px solid var(--linea);
+}
+
+.fila-area:last-child{border-bottom:none}
+.fila-area.elegida{background:var(--club-suave)}
+
+.fila-area label{
+  display:flex;align-items:center;gap:8px;
+  flex:1 1 150px;cursor:pointer;min-width:0;font-size:14.5px;
+}
+
+.fila-area input[type="checkbox"]{width:17px;height:17px;flex:none;accent-color:var(--club);cursor:pointer}
+
+.fila-area .responsable{
+  flex:1 1 130px;min-width:0;
+  border:1px solid var(--linea-fuerte);border-radius:var(--radio);
+  padding:5px 8px;font-size:13.5px;background:var(--hoja);
+}
+
+.lista-areas{list-style:none;margin:0 0 14px;padding:0}
+
+.lista-areas li{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 0;border-bottom:1px solid var(--linea);
+}
+
+.lista-areas li > span:first-child{flex:1}
+
+.aviso{
+  background:var(--club-suave);border-left:3px solid var(--club);
+  padding:10px 13px;font-size:13.5px;margin-bottom:16px;
+}
+
+.opciones-quien{display:flex;flex-direction:column;gap:8px}
+
+.opcion-quien{
+  display:flex;align-items:center;gap:9px;
+  border:1px solid var(--linea-fuerte);border-radius:var(--radio);
+  padding:10px 12px;cursor:pointer;
+}
+
+.opcion-quien:hover{border-color:var(--tinta-tenue)}
+.opcion-quien input{width:17px;height:17px;accent-color:var(--club)}
+
+#dlgFoto{width:min(920px,calc(100vw - 32px));background:var(--tinta)}
+#dlgFoto img{display:block;width:100%;height:auto;max-height:80vh;object-fit:contain}
+#dlgFoto .dialogo-pie{background:var(--tinta);border-top-color:#333}
+
+.cartel{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+  background:var(--tinta);color:#fff;padding:10px 18px;border-radius:100px;
+  font-size:14px;box-shadow:0 6px 20px rgba(25,29,33,.3);z-index:50;
+  max-width:calc(100vw - 40px);text-align:center;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width:720px){
+  .resumen{padding-left:0;border-left:none;width:100%;gap:20px}
+  .titulo{font-size:23px}
+  .resumen-valor{font-size:25px}
+  .tarea{grid-template-columns:6px 1fr}
+  .tarea-acciones{grid-column:2;padding:0 14px 12px;justify-content:flex-start}
+  .rejilla{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px}
+  .cuadro{min-height:140px;padding:13px 13px 0}
+  .cuadro-numero{font-size:32px}
+  .barrita{margin:0 -13px}
+  .renglon{grid-template-columns:1fr;gap:3px}
+}
+
+@media print{
+  body{background:#fff;font-size:11pt}
+  .barra,.filtros,.tarea-acciones,.cartel,.volver,.franja,.sesion{display:none !important}
+  .cabecera{border-bottom:2px solid #000}
+  .tarea,.cuadro,.cierre,.renglon{break-inside:avoid}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<div class="franja" id="franja" hidden></div>
+
+<header class="cabecera">
+  <div class="cabecera-interior">
+    <div id="ranuraEscudo"></div>
+    <div class="identidad">
+      <p class="institucion" id="institucion"></p>
+      <h1 class="titulo">Tareas 2.0</h1>
+      <p class="sesion" id="sesion" hidden></p>
+    </div>
+    <div class="resumen" id="resumen"></div>
+  </div>
+</header>
+
+<div class="envoltorio">
+
+  <div class="barra">
+    <button class="boton boton-principal" id="btnNueva">Cargar tarea</button>
+    <button class="boton" id="btnAreas">Editar áreas</button>
+    <button class="boton" id="btnRegistro">Registro</button>
+    <div class="espaciador"></div>
+    <button class="boton boton-tenue" id="btnActualizar">Actualizar</button>
+    <button class="boton boton-tenue" id="btnCopiar">Copiar para WhatsApp</button>
+    <button class="boton boton-tenue" id="btnImprimir">Imprimir</button>
+  </div>
+
+  <section id="vistaPortada">
+    <div class="rejilla" id="rejilla"></div>
+  </section>
+
+  <section id="vistaArea" hidden>
+    <div class="migas">
+      <button class="volver" id="btnVolver">← Áreas</button>
+      <h2 id="areaTitulo"></h2>
+      <span class="area-cuenta" id="areaCuenta"></span>
+    </div>
+    <div class="filtros">
+      <div class="filtro-grupo" id="filtroEstado"><span class="filtro-titulo">Estado</span></div>
+      <input type="search" class="busqueda" id="busqueda" placeholder="Buscar tarea o responsable" aria-label="Buscar tarea o responsable">
+    </div>
+    <div id="listado"></div>
+  </section>
+
+  <section id="vistaRegistro" hidden>
+    <div class="migas">
+      <button class="volver" id="btnVolverRegistro">← Áreas</button>
+      <h2>Registro</h2>
+      <span class="area-cuenta">todo lo que pasó, en orden</span>
+    </div>
+    <div class="registro" id="renglones"></div>
+  </section>
+
+</div>
+
+<div class="cartel" id="cartel" hidden role="status"></div>
+
+<!-- ¿Quién sos? -->
+<dialog id="dlgQuien">
+  <form id="formQuien">
+    <div class="dialogo-cabecera">
+      <h2>¿Quién sos?</h2>
+      <p>Queda registrado en cada movimiento. Lo podés cambiar cuando quieras.</p>
+    </div>
+    <div class="dialogo-cuerpo">
+      <div class="campo">
+        <label for="qNombre">Tu nombre</label>
+        <input type="text" id="qNombre" maxlength="60" autocomplete="name" placeholder="Nombre y apellido">
+        <div class="error" id="errQuienNombre" hidden>Poné tu nombre.</div>
+      </div>
+      <div class="campo">
+        <label id="rotuloRol">Desde dónde entrás</label>
+        <div class="opciones-quien" id="opcionesRol" role="radiogroup" aria-labelledby="rotuloRol"></div>
+      </div>
+    </div>
+    <div class="dialogo-pie">
+      <button type="submit" class="boton boton-principal">Entrar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Cargar / editar tarea -->
+<dialog id="dlgTarea">
+  <form id="formTarea">
+    <div class="dialogo-cabecera"><h2 id="tituloDialogo">Cargar tarea</h2></div>
+    <div class="dialogo-cuerpo">
+      <div class="campo">
+        <label for="fTitulo">Qué hay que hacer</label>
+        <input type="text" id="fTitulo" maxlength="140" autocomplete="off">
+        <div class="error" id="errTitulo" hidden>Poné al menos un título.</div>
+      </div>
+      <div class="campo">
+        <label for="fDetalle">Detalle (opcional)</label>
+        <textarea id="fDetalle" maxlength="800"></textarea>
+      </div>
+      <div class="campo">
+        <label id="rotuloAreas">A qué áreas va</label>
+        <div class="selector-areas" role="group" aria-labelledby="rotuloAreas">
+          <div class="selector-areas-barra">
+            <span id="cuentaElegidas">Ninguna área elegida</span>
+            <span class="espaciador"></span>
+            <button type="button" id="btnTodasAreas">Todas</button>
+            <button type="button" id="btnNingunaArea">Ninguna</button>
+          </div>
+          <div id="filasAreas"></div>
+        </div>
+        <div class="error" id="errAreas" hidden>Elegí al menos un área.</div>
+      </div>
+      <div class="campo-fila">
+        <div class="campo">
+          <label for="fPrioridad">Prioridad</label>
+          <select id="fPrioridad">
+            <option value="alta">Alta</option>
+            <option value="media" selected>Media</option>
+            <option value="baja">Baja</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fVence">Para cuándo (opcional)</label>
+          <input type="date" id="fVence">
+        </div>
+      </div>
+    </div>
+    <div class="dialogo-pie">
+      <button type="button" class="boton" id="btnCancelarTarea">Cancelar</button>
+      <button type="submit" class="boton boton-principal" id="btnGuardarTarea">Guardar tarea</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Cerrar tarea -->
+<dialog id="dlgCierre">
+  <form id="formCierre">
+    <div class="dialogo-cabecera">
+      <h2>Cerrar tarea</h2>
+      <p id="cierreContexto"></p>
+    </div>
+    <div class="dialogo-cuerpo">
+      <div class="campo">
+        <label for="cQuien">Quién la hizo</label>
+        <input type="text" id="cQuien" maxlength="60" autocomplete="off" placeholder="Nombre y apellido">
+        <div class="error" id="errQuien" hidden>Poné quién la realizó.</div>
+      </div>
+      <div class="campo">
+        <label for="cObs">Observaciones (opcional)</label>
+        <textarea id="cObs" maxlength="800" placeholder="Qué se hizo, qué falta, qué hay que comprar…"></textarea>
+      </div>
+      <div class="campo">
+        <label for="cFoto">Foto (opcional)</label>
+        <div class="zona-foto">
+          <img class="previa" id="cPrevia" alt="Foto adjunta" hidden>
+          <div>
+            <input type="file" id="cFoto" accept="image/*" capture="environment">
+            <p class="pista" id="cPeso">Se sube a la carpeta del club en Drive.</p>
+          </div>
+          <button type="button" class="boton boton-tenue" id="btnQuitarFoto" hidden>Quitar foto</button>
+        </div>
+      </div>
+      <p class="pista">La fecha y la hora se registran solas al guardar.</p>
+    </div>
+    <div class="dialogo-pie">
+      <button type="button" class="boton" id="btnCancelarCierre">Cancelar</button>
+      <button type="submit" class="boton boton-principal" id="btnGuardarCierre">Marcar como hecha</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Áreas -->
+<dialog id="dlgAreas">
+  <div class="dialogo-cabecera"><h2>Áreas del club</h2></div>
+  <div class="dialogo-cuerpo">
+    <div class="aviso">Dar de baja un área la saca de la app, pero no borra nada: las tareas y las constancias quedan guardadas en la planilla y en el registro.</div>
+    <ul class="lista-areas" id="listaAreas"></ul>
+    <div class="campo-fila">
+      <div class="campo">
+        <label for="fNuevaArea">Agregar un área</label>
+        <input type="text" id="fNuevaArea" maxlength="40" autocomplete="off" placeholder="Ej: Pileta">
+      </div>
+      <div class="campo" style="flex:0 0 auto;align-self:flex-end">
+        <button class="boton" id="btnAgregarArea" type="button">Agregar</button>
+      </div>
+    </div>
+  </div>
+  <div class="dialogo-pie">
+    <button class="boton boton-principal" id="btnCerrarAreas" type="button">Listo</button>
+  </div>
+</dialog>
+
+<dialog id="dlgFoto">
+  <img id="fotoGrande" alt="Foto de la tarea cerrada">
+  <div class="dialogo-pie">
+    <button class="boton" id="btnCerrarFoto" type="button">Cerrar</button>
+  </div>
+</dialog>
+
+<script>
+/* ==========================================================================
+   CONEXIÓN CON EL BACKEND
+   ========================================================================== */
+
+let ocupado = 0;
+
+function franja(texto, tono){
+  const f = $("#franja");
+  if (!texto){ f.hidden = true; return; }
+  f.textContent = texto;
+  f.className = "franja" + (tono === "trabajando" ? " trabajando" : "");
+  f.hidden = false;
+}
+
+const API = {
+  async llamar(accion, carga){
+    if (!API_URL){
+      throw new Error("Falta configurar API_URL arriba del archivo.");
+    }
+
+    ocupado++;
+    if (ocupado === 1) franja("Guardando…", "trabajando");
+
+    try{
+      // text/plain evita el preflight que Apps Script no responde.
+      const r = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        redirect: "follow",
+        body: JSON.stringify(Object.assign({
+          accion: accion,
+          quien: QUIEN.etiqueta || "sin identificar",
+          clave: CLAVE
+        }, carga || {}))
+      });
+
+      if (!r.ok) throw new Error("El servidor respondió " + r.status);
+
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || "Error del servidor");
+      return j.datos;
+
+    } finally {
+      ocupado--;
+      if (ocupado === 0) franja("");
+    }
+  }
+};
+
+/* ==========================================================================
+   ESTADO
+   ========================================================================== */
+
+let datos = { areas: [], tareas: [] };
+let vista = { tipo: "portada", area: null };
+let QUIEN = { nombre: "", rol: "", etiqueta: "" };
+
+const filtros = { estado: "abiertas", texto: "" };
+
+const ESTADOS = {
+  pendiente: "Pendiente",
+  curso:     "En curso",
+  trabada:   "Trabada",
+  hecha:     "Hecha"
+};
+
+const CACHE_FOTOS = new Map();
+
+/* ==========================================================================
+   UTILIDADES
+   ========================================================================== */
+
+function $(s){ return document.querySelector(s); }
+
+function escapar(t){
+  return String(t ?? "").replace(/[&<>"']/g, c => (
+    {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
+  ));
+}
+
+function hoyISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function fechaLinda(iso){
+  if(!iso) return "";
+  const p = String(iso).split("-");
+  return `${p[2]}/${p[1]}`;
+}
+
+function selloLindo(ms){
+  const d = new Date(Number(ms) || ms);
+  if (isNaN(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2,"0");
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const hh = String(d.getHours()).padStart(2,"0");
+  const mi = String(d.getMinutes()).padStart(2,"0");
+  return `${dd}/${mm}/${d.getFullYear()} a las ${hh}:${mi}`;
+}
+
+function tareaAbierta(t){ return t.asignaciones.some(a => a.estado !== "hecha"); }
+function tareaVencida(t){ return Boolean(t.vence) && tareaAbierta(t) && t.vence < hoyISO(); }
+function tareaVenceHoy(t){ return Boolean(t.vence) && tareaAbierta(t) && t.vence === hoyISO(); }
+function asigVencida(t,a){ return Boolean(t.vence) && a.estado !== "hecha" && t.vence < hoyISO(); }
+function asigVenceHoy(t,a){ return Boolean(t.vence) && a.estado !== "hecha" && t.vence === hoyISO(); }
+
+function deArea(area){
+  return datos.tareas
+    .map(t => ({ t, a: t.asignaciones.find(x => x.area === area) }))
+    .filter(par => par.a);
+}
+
+let temporizadorCartel;
+function avisar(texto){
+  const c = $("#cartel");
+  c.textContent = texto;
+  c.hidden = false;
+  clearTimeout(temporizadorCartel);
+  temporizadorCartel = setTimeout(() => { c.hidden = true; }, 3400);
+}
+
+// Envoltorio: llama al backend, refresca y avisa si algo falla.
+async function operar(accion, carga, mensajeOk){
+  try{
+    datos = await API.llamar(accion, carga);
+    refrescar();
+    if (mensajeOk) avisar(mensajeOk);
+    return true;
+  }catch(err){
+    franja("No se pudo guardar: " + err.message + ". Revisá la conexión y probá de nuevo.");
+    refrescar();
+    return false;
+  }
+}
+
+/* ==========================================================================
+   IDENTIFICACIÓN
+   ========================================================================== */
+
+const CLAVE_QUIEN = "tareas20-quien";
+
+function leerQuien(){
+  try{
+    const bruto = localStorage.getItem(CLAVE_QUIEN);
+    return bruto ? JSON.parse(bruto) : null;
+  }catch(e){ return null; }
+}
+
+function guardarQuien(q){
+  try{ localStorage.setItem(CLAVE_QUIEN, JSON.stringify(q)); }catch(e){ /* modo privado */ }
+}
+
+function pintarSesion(){
+  const s = $("#sesion");
+  if (!QUIEN.nombre){ s.hidden = true; return; }
+  s.hidden = false;
+  s.innerHTML = `<span>Estás como <strong>${escapar(QUIEN.nombre)}</strong> · ${escapar(QUIEN.rol)}</span>
+                 <button type="button" id="btnCambiarQuien">Cambiar</button>`;
+  $("#btnCambiarQuien").onclick = () => pedirQuien();
+}
+
+function pedirQuien(){
+  const roles = ["Gerencia"].concat(datos.areas);
+  $("#opcionesRol").innerHTML = roles.map((r,i) => `
+    <label class="opcion-quien">
+      <input type="radio" name="rol" value="${escapar(r)}" ${(QUIEN.rol === r || (!QUIEN.rol && i===0)) ? "checked" : ""}>
+      <span>${escapar(r)}</span>
+    </label>`).join("");
+  $("#qNombre").value = QUIEN.nombre || "";
+  $("#errQuienNombre").hidden = true;
+  $("#dlgQuien").showModal();
+  $("#qNombre").focus();
+}
+
+$("#formQuien").addEventListener("submit", e => {
+  e.preventDefault();
+  const nombre = $("#qNombre").value.trim();
+  $("#errQuienNombre").hidden = Boolean(nombre);
+  if (!nombre){ $("#qNombre").focus(); return; }
+
+  const rolElegido = document.querySelector('#opcionesRol input[name="rol"]:checked');
+  const rol = rolElegido ? rolElegido.value : "Gerencia";
+
+  QUIEN = { nombre, rol, etiqueta: `${nombre} (${rol})` };
+  guardarQuien(QUIEN);
+  pintarSesion();
+  $("#dlgQuien").close();
+});
+
+/* ==========================================================================
+   CABECERA
+   ========================================================================== */
+
+function pintarCabecera(){
+  $("#institucion").textContent = INSTITUCION;
+  $("#ranuraEscudo").innerHTML = ESCUDO
+    ? `<img class="escudo" src="${escapar(ESCUDO)}" alt="Escudo del ${escapar(INSTITUCION)}">`
+    : `<div class="escudo-vacio">Pegá el escudo en la constante ESCUDO</div>`;
+}
+
+function pintarResumen(){
+  const abiertas = datos.tareas.filter(tareaAbierta).length;
+  const paraHoy  = datos.tareas.filter(tareaVenceHoy).length;
+  const vencidas = datos.tareas.filter(tareaVencida).length;
+  const sinCerrar = datos.tareas
+    .reduce((n,t) => n + t.asignaciones.filter(a => a.estado !== "hecha").length, 0);
+
+  $("#resumen").innerHTML = `
+    <div class="resumen-dato">
+      <span class="resumen-valor">${abiertas}</span>
+      <span class="resumen-rotulo">tareas abiertas</span>
+    </div>
+    <div class="resumen-dato">
+      <span class="resumen-valor">${sinCerrar}</span>
+      <span class="resumen-rotulo">sin cerrar por área</span>
+    </div>
+    <div class="resumen-dato">
+      <span class="resumen-valor">${paraHoy}</span>
+      <span class="resumen-rotulo">para hoy</span>
+    </div>
+    <div class="resumen-dato">
+      <span class="resumen-valor ${vencidas ? "alerta" : ""}">${vencidas}</span>
+      <span class="resumen-rotulo">vencidas</span>
+    </div>`;
+}
+
+/* ==========================================================================
+   PORTADA
+   ========================================================================== */
+
+function pintarPortada(){
+  const rejilla = $("#rejilla");
+
+  if (!datos.areas.length){
+    rejilla.innerHTML = `
+      <div class="vacio" style="grid-column:1/-1">
+        <h2>Todavía no hay áreas</h2>
+        <p>Agregá las áreas del club para empezar a repartir tareas.</p>
+        <button class="boton boton-principal" data-abrir-areas>Editar áreas</button>
+      </div>`;
+    return;
+  }
+
+  rejilla.innerHTML = datos.areas.map(area => {
+    const pares = deArea(area);
+    const total = pares.length;
+    const cerradas = pares.filter(p => p.a.estado === "hecha").length;
+    const pendientes = total - cerradas;
+    const vencidas = pares.filter(p => asigVencida(p.t,p.a)).length;
+
+    if (!total){
+      return `
+        <button class="cuadro vacio-area" data-area="${escapar(area)}" disabled>
+          <h3 class="cuadro-nombre">${escapar(area)}</h3>
+          <p class="cuadro-sin">Sin tareas asignadas</p>
+        </button>`;
+    }
+
+    const completo = pendientes === 0;
+    const clases = ["cuadro"];
+    if (completo) clases.push("completo");
+    else if (vencidas) clases.push("con-vencidas");
+
+    const cifra = completo
+      ? `<div class="cuadro-cifra"><span class="cuadro-numero">${cerradas}</span><span class="cuadro-de">de ${total}</span></div>
+         <p class="cuadro-rotulo">Todo cerrado</p>`
+      : `<div class="cuadro-cifra"><span class="cuadro-numero">${pendientes}</span><span class="cuadro-de">de ${total}</span></div>
+         <p class="cuadro-rotulo">Tareas pendientes</p>`;
+
+    const alerta = vencidas ? `<p class="cuadro-alerta">${vencidas} vencida${vencidas===1?"":"s"}</p>` : "";
+    const porcentaje = Math.round((cerradas/total)*100);
+
+    return `
+      <button class="${clases.join(" ")}" data-area="${escapar(area)}"
+              aria-label="${escapar(area)}: ${pendientes} pendientes de ${total}">
+        <h3 class="cuadro-nombre">${escapar(area)}</h3>
+        ${cifra}
+        ${alerta}
+        <div class="cuadro-pie"><div class="barrita" role="presentation"><span style="width:${porcentaje}%"></span></div></div>
+      </button>`;
+  }).join("");
+}
+
+$("#rejilla").addEventListener("click", e => {
+  if (e.target.closest("[data-abrir-areas]")){ pintarAreas(); $("#dlgAreas").showModal(); return; }
+  const c = e.target.closest(".cuadro[data-area]");
+  if (c && !c.disabled) abrirArea(c.dataset.area);
+});
+
+function abrirArea(area){
+  vista = { tipo:"area", area };
+  filtros.estado = "abiertas";
+  filtros.texto = "";
+  $("#busqueda").value = "";
+  refrescar();
+  window.scrollTo({ top:0 });
+}
+
+function volverAPortada(){
+  vista = { tipo:"portada", area:null };
+  refrescar();
+}
+
+$("#btnVolver").onclick = volverAPortada;
+$("#btnVolverRegistro").onclick = volverAPortada;
+
+/* ==========================================================================
+   VISTA DE ÁREA
+   ========================================================================== */
+
+function pintarFiltros(){
+  const caja = $("#filtroEstado");
+  caja.querySelectorAll(".ficha").forEach(n => n.remove());
+  const opciones = [
+    ["abiertas","Abiertas"], ["pendiente","Pendientes"], ["curso","En curso"],
+    ["trabada","Trabadas"], ["hecha","Hechas"], ["todas","Todas"]
+  ];
+  for(const [valor,texto] of opciones){
+    const b = document.createElement("button");
+    b.className = "ficha";
+    b.type = "button";
+    b.textContent = texto;
+    b.setAttribute("aria-pressed", filtros.estado === valor);
+    b.onclick = () => { filtros.estado = valor; pintarFiltros(); pintarListado(); };
+    caja.appendChild(b);
+  }
+}
+
+function pasaFiltro(t,a){
+  if (filtros.estado === "abiertas" && a.estado === "hecha") return false;
+  if (filtros.estado !== "abiertas" && filtros.estado !== "todas" && a.estado !== filtros.estado) return false;
+
+  if (filtros.texto){
+    const aguja = filtros.texto.toLowerCase();
+    const pajar = [
+      t.titulo, t.detalle, a.responsable,
+      a.cierre ? a.cierre.por : "",
+      a.cierre ? a.cierre.observaciones : ""
+    ].join(" ").toLowerCase();
+    if (!pajar.includes(aguja)) return false;
+  }
+  return true;
+}
+
+const ORDEN_PRIORIDAD = { alta:0, media:1, baja:2 };
+
+function ordenarPares(x,y){
+  const abX = x.a.estado !== "hecha";
+  const abY = y.a.estado !== "hecha";
+  if (abX !== abY) return abX ? -1 : 1;
+
+  const vX = asigVencida(x.t,x.a);
+  const vY = asigVencida(y.t,y.a);
+  if (vX !== vY) return vX ? -1 : 1;
+
+  const p = ORDEN_PRIORIDAD[x.t.prioridad] - ORDEN_PRIORIDAD[y.t.prioridad];
+  if (p) return p;
+
+  if (x.t.vence && y.t.vence && x.t.vence !== y.t.vence) return x.t.vence < y.t.vence ? -1 : 1;
+  if (x.t.vence && !y.t.vence) return -1;
+  if (!x.t.vence && y.t.vence) return 1;
+  return y.t.creada - x.t.creada;
+}
+
+function pintarListado(){
+  const area = vista.area;
+  const pares = deArea(area);
+  const cerradas = pares.filter(p => p.a.estado === "hecha").length;
+
+  $("#areaTitulo").textContent = area;
+  $("#areaCuenta").textContent = pares.length
+    ? `${cerradas} de ${pares.length} cerradas`
+    : "sin tareas asignadas";
+
+  const cont = $("#listado");
+
+  if (!pares.length){
+    cont.innerHTML = `
+      <div class="vacio">
+        <h2>${escapar(area)} no tiene tareas</h2>
+        <p>Cargá una tarea y elegí esta área para que aparezca acá.</p>
+        <button class="boton boton-principal" data-nueva-aca>Cargar tarea para ${escapar(area)}</button>
+      </div>`;
+    return;
+  }
+
+  const visibles = pares.filter(p => pasaFiltro(p.t,p.a)).sort(ordenarPares);
+
+  cont.innerHTML = visibles.length
+    ? visibles.map(p => filaTarea(p.t,p.a,area)).join("")
+    : `<div class="vacio"><h2>Ninguna tarea entra en este filtro</h2><p>Probá con otro estado o limpiá la búsqueda.</p></div>`;
+
+  cargarFotosVisibles();
+}
+
+function filaTarea(t,a,area){
+  const vencida = asigVencida(t,a);
+  const hoy = asigVenceHoy(t,a);
+
+  const meta = [];
+  if (a.responsable) meta.push(`<span class="meta-responsable">${escapar(a.responsable)}</span>`);
+  if (t.prioridad === "alta") meta.push(`<span class="prioridad-alta">Prioridad alta</span>`);
+  if (t.vence){
+    const clase = vencida ? "vencida" : (hoy ? "hoy" : "");
+    const texto = vencida ? `Venció el ${fechaLinda(t.vence)}` : (hoy ? "Vence hoy" : `Para el ${fechaLinda(t.vence)}`);
+    meta.push(`<span class="meta-vence ${clase}">${texto}</span>`);
+  }
+
+  if (t.asignaciones.length > 1){
+    const total = t.asignaciones.length;
+    const cerradas = t.asignaciones.filter(x => x.estado === "hecha").length;
+    const otras = t.asignaciones.filter(x => x.area !== area).map(x => x.area).join(", ");
+    meta.push(`<span class="compartida ${cerradas===total ? "completa" : ""}" title="También va a: ${escapar(otras)}">${cerradas} de ${total} áreas cerraron</span>`);
+  }
+
+  let cierre = "";
+  if (a.cierre){
+    const foto = a.cierre.fotoId
+      ? `<img class="cierre-foto" alt="Foto del cierre" data-foto-id="${escapar(a.cierre.fotoId)}">`
+      : "";
+    const obs = a.cierre.observaciones ? `<p class="cierre-obs">${escapar(a.cierre.observaciones)}</p>` : "";
+    cierre = `
+      <div class="cierre">
+        <div class="cierre-texto">
+          <span class="cierre-firma">${escapar(a.cierre.por)}</span>
+          <span class="cierre-cuando">— ${escapar(selloLindo(a.cierre.cuando))}</span>
+          ${obs}
+        </div>
+        ${foto}
+      </div>`;
+  }
+
+  const opciones = Object.keys(ESTADOS)
+    .map(v => `<option value="${v}" ${a.estado===v?"selected":""}>${ESTADOS[v]}</option>`)
+    .join("");
+
+  return `
+    <article class="tarea ${a.estado==="hecha"?"hecha":""}" data-estado="${a.estado}">
+      <div class="marca"></div>
+      <div class="tarea-cuerpo">
+        <h3 class="tarea-titulo">${escapar(t.titulo)}</h3>
+        ${t.detalle ? `<p class="tarea-detalle">${escapar(t.detalle)}</p>` : ""}
+        ${meta.length ? `<div class="tarea-meta">${meta.join("")}</div>` : ""}
+        ${cierre}
+      </div>
+      <div class="tarea-acciones">
+        <select class="selector-estado" data-id="${t.id}" data-area="${escapar(area)}"
+                aria-label="Estado de ${escapar(area)} para: ${escapar(t.titulo)}">${opciones}</select>
+        <button class="icono" data-editar="${t.id}" aria-label="Editar: ${escapar(t.titulo)}">Editar</button>
+        <button class="icono peligro" data-borrar="${t.id}" aria-label="Borrar: ${escapar(t.titulo)}">Borrar</button>
+      </div>
+    </article>`;
+}
+
+/* Fotos: se piden al backend de a una y se cachean en memoria. */
+async function cargarFotosVisibles(){
+  const nodos = [...document.querySelectorAll("img[data-foto-id]:not([src])")];
+  for (const img of nodos){
+    const idFoto = img.dataset.fotoId;
+    if (CACHE_FOTOS.has(idFoto)){ img.src = CACHE_FOTOS.get(idFoto); continue; }
+    try{
+      const r = await API.llamar("foto", { id: idFoto });
+      CACHE_FOTOS.set(idFoto, r.base64);
+      img.src = r.base64;
+    }catch(e){
+      img.alt = "No se pudo cargar la foto";
+    }
+  }
+}
+
+$("#listado").addEventListener("change", e => {
+  const sel = e.target.closest(".selector-estado");
+  if (sel) pedirCambioEstado(sel.dataset.id, sel.dataset.area, sel.value);
+});
+
+$("#listado").addEventListener("click", e => {
+  const foto = e.target.closest("img[data-foto-id]");
+  if (foto && foto.src){ $("#fotoGrande").src = foto.src; $("#dlgFoto").showModal(); return; }
+  if (e.target.closest("[data-nueva-aca]")) return abrirTarea(null, vista.area);
+  const editar = e.target.closest("[data-editar]");
+  if (editar) return abrirTarea(editar.dataset.editar);
+  const borrar = e.target.closest("[data-borrar]");
+  if (borrar) return borrarTarea(borrar.dataset.borrar);
+});
+
+$("#btnCerrarFoto").onclick = () => $("#dlgFoto").close();
+
+/* ==========================================================================
+   REGISTRO
+   ========================================================================== */
+
+async function abrirRegistro(){
+  vista = { tipo:"registro", area:null };
+  refrescar();
+  $("#renglones").innerHTML = `<div class="renglon"><span class="renglon-cuando">Cargando…</span></div>`;
+  try{
+    const r = await API.llamar("bitacora", { cuantas: 300 });
+    $("#renglones").innerHTML = r.filas.length
+      ? r.filas.map(f => `
+          <div class="renglon">
+            <span class="renglon-cuando">${escapar(selloLindo(Date.parse(f.cuando)))}</span>
+            <span class="renglon-quien">${escapar(f.quien)}</span>
+            <span class="renglon-que">
+              ${escapar(f.accion)}${f.area ? ` <span class="renglon-donde">· ${escapar(f.area)}</span>` : ""}
+              ${f.detalle ? `<br><span class="renglon-donde">${escapar(f.detalle)}</span>` : ""}
+            </span>
+          </div>`).join("")
+      : `<div class="renglon"><span class="renglon-cuando">Todavía no hay movimientos.</span></div>`;
+  }catch(err){
+    $("#renglones").innerHTML = `<div class="renglon"><span class="renglon-cuando">No se pudo leer el registro: ${escapar(err.message)}</span></div>`;
+  }
+}
+
+$("#btnRegistro").onclick = abrirRegistro;
+
+/* ==========================================================================
+   REFRESCO DE VISTAS
+   ========================================================================== */
+
+function refrescar(){
+  pintarResumen();
+  $("#vistaPortada").hidden  = vista.tipo !== "portada";
+  $("#vistaArea").hidden     = vista.tipo !== "area";
+  $("#vistaRegistro").hidden = vista.tipo !== "registro";
+
+  if (vista.tipo === "portada"){
+    pintarPortada();
+  }else if (vista.tipo === "area"){
+    if (!datos.areas.includes(vista.area)) return volverAPortada();
+    pintarFiltros();
+    pintarListado();
+  }
+}
+
+/* ==========================================================================
+   CIERRE DE TAREA
+   ========================================================================== */
+
+let cerrando = null;
+let fotoCierre = "";
+
+function comprimirImagen(archivo){
+  return new Promise((resolver, rechazar) => {
+    const lector = new FileReader();
+    lector.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.naturalWidth, h = img.naturalHeight;
+        const escala = Math.min(1, FOTO_LADO_MAX / Math.max(w,h));
+        w = Math.round(w*escala); h = Math.round(h*escala);
+        const lienzo = document.createElement("canvas");
+        lienzo.width = w; lienzo.height = h;
+        lienzo.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolver(lienzo.toDataURL("image/jpeg", FOTO_CALIDAD));
+      };
+      img.onerror = () => rechazar(new Error("No se pudo leer la imagen"));
+      img.src = lector.result;
+    };
+    lector.onerror = () => rechazar(new Error("No se pudo abrir el archivo"));
+    lector.readAsDataURL(archivo);
+  });
+}
+
+$("#cFoto").addEventListener("change", async e => {
+  const archivo = e.target.files[0];
+  if (!archivo) return;
+  try{
+    fotoCierre = await comprimirImagen(archivo);
+    const kb = Math.round(fotoCierre.length * 0.75 / 1024);
+    $("#cPrevia").src = fotoCierre;
+    $("#cPrevia").hidden = false;
+    $("#btnQuitarFoto").hidden = false;
+    $("#cPeso").textContent = `Se va a subir a Drive: unos ${kb} KB.`;
+  }catch(err){
+    avisar("No se pudo procesar esa imagen");
+    limpiarFoto();
+  }
+});
+
+function limpiarFoto(){
+  fotoCierre = "";
+  $("#cFoto").value = "";
+  $("#cPrevia").hidden = true;
+  $("#cPrevia").removeAttribute("src");
+  $("#btnQuitarFoto").hidden = true;
+  $("#cPeso").textContent = "Se sube a la carpeta del club en Drive.";
+}
+
+$("#btnQuitarFoto").onclick = limpiarFoto;
+
+async function pedirCambioEstado(idTarea, area, estado){
+  const t = datos.tareas.find(x => x.id === idTarea);
+  if (!t) return;
+  const a = t.asignaciones.find(x => x.area === area);
+  if (!a) return;
+
+  if (estado === "hecha" && !a.cierre){
+    abrirCierre(idTarea, area, t, a);
+    return;
+  }
+
+  if (a.estado === "hecha" && estado !== "hecha"){
+    const ok = confirm(`Al reabrir esta tarea se saca la constancia de cierre de ${area}. Queda guardada en el registro, con la foto. ¿Seguimos?`);
+    if (!ok){ refrescar(); return; }
+    await operar("reabrirTarea", { tareaId: idTarea, area, estado }, "Tarea reabierta");
+    return;
+  }
+
+  await operar("cambiarEstado", { tareaId: idTarea, area, estado });
+}
+
+function abrirCierre(idTarea, area, t, a){
+  cerrando = { idTarea, area };
+  limpiarFoto();
+  $("#errQuien").hidden = true;
+  $("#cQuien").value = a.responsable || QUIEN.nombre || "";
+  $("#cObs").value = "";
+  $("#cierreContexto").textContent = `${t.titulo} — ${area}`;
+  $("#dlgCierre").showModal();
+  $("#cQuien").focus();
+}
+
+$("#formCierre").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!cerrando) return;
+
+  const por = $("#cQuien").value.trim();
+  $("#errQuien").hidden = Boolean(por);
+  if (!por){ $("#cQuien").focus(); return; }
+
+  const boton = $("#btnGuardarCierre");
+  boton.disabled = true;
+  boton.textContent = fotoCierre ? "Subiendo la foto…" : "Guardando…";
+
+  const ok = await operar("cerrarTarea", {
+    tareaId: cerrando.idTarea,
+    area: cerrando.area,
+    por,
+    observaciones: $("#cObs").value.trim(),
+    fotoBase64: fotoCierre
+  }, "Tarea cerrada");
+
+  boton.disabled = false;
+  boton.textContent = "Marcar como hecha";
+
+  if (ok){
+    cerrando = null;
+    limpiarFoto();
+    $("#dlgCierre").close();
+  }
+});
+
+$("#btnCancelarCierre").onclick = () => {
+  cerrando = null;
+  limpiarFoto();
+  $("#dlgCierre").close();
+  refrescar();
+};
+
+$("#dlgCierre").addEventListener("cancel", () => {
+  cerrando = null;
+  limpiarFoto();
+  setTimeout(refrescar, 0);
+});
+
+/* ==========================================================================
+   FORMULARIO DE TAREA
+   ========================================================================== */
+
+let editando = null;
+
+function pintarFilasAreas(preseleccion){
+  const cont = $("#filasAreas");
+
+  cont.innerHTML = datos.areas.map(area => {
+    const previa = preseleccion.find(a => a.area === area);
+    const elegida = Boolean(previa);
+    return `
+      <div class="fila-area ${elegida ? "elegida" : ""}" data-area="${escapar(area)}">
+        <label>
+          <input type="checkbox" ${elegida ? "checked" : ""}>
+          <span>${escapar(area)}</span>
+        </label>
+        <input type="text" class="responsable" maxlength="60" autocomplete="off"
+               placeholder="Responsable (opcional)"
+               value="${escapar(previa ? previa.responsable : "")}" ${elegida ? "" : "hidden"}>
+      </div>`;
+  }).join("") || `<div class="fila-area"><span style="color:var(--tinta-tenue)">No hay áreas cargadas.</span></div>`;
+
+  cont.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener("change", () => {
+      const fila = cb.closest(".fila-area");
+      fila.classList.toggle("elegida", cb.checked);
+      fila.querySelector(".responsable").hidden = !cb.checked;
+      actualizarCuentaAreas();
+    });
+  });
+
+  actualizarCuentaAreas();
+}
+
+function areasElegidas(){
+  return [...document.querySelectorAll("#filasAreas .fila-area")]
+    .filter(f => {
+      const cb = f.querySelector('input[type="checkbox"]');
+      return cb && cb.checked;
+    })
+    .map(f => ({ area: f.dataset.area, responsable: f.querySelector(".responsable").value.trim() }));
+}
+
+function actualizarCuentaAreas(){
+  const n = areasElegidas().length;
+  $("#cuentaElegidas").textContent =
+    n === 0 ? "Ninguna área elegida" : n === 1 ? "1 área elegida" : `${n} áreas elegidas`;
+}
+
+function marcarTodas(valor){
+  document.querySelectorAll("#filasAreas .fila-area").forEach(f => {
+    const cb = f.querySelector('input[type="checkbox"]');
+    if (!cb) return;
+    cb.checked = valor;
+    f.classList.toggle("elegida", valor);
+    f.querySelector(".responsable").hidden = !valor;
+  });
+  actualizarCuentaAreas();
+}
+
+function abrirTarea(idTarea, areaSugerida){
+  editando = idTarea || null;
+  const t = idTarea ? datos.tareas.find(x => x.id === idTarea) : null;
+
+  $("#tituloDialogo").textContent = t ? "Editar tarea" : "Cargar tarea";
+  $("#btnGuardarTarea").textContent = t ? "Guardar cambios" : "Guardar tarea";
+  $("#errTitulo").hidden = true;
+  $("#errAreas").hidden = true;
+
+  $("#fTitulo").value    = t ? t.titulo : "";
+  $("#fDetalle").value   = t ? t.detalle : "";
+  $("#fPrioridad").value = t ? t.prioridad : "media";
+  $("#fVence").value     = t ? t.vence : "";
+
+  let preseleccion = [];
+  if (t) preseleccion = t.asignaciones;
+  else if (areaSugerida) preseleccion = [{ area: areaSugerida, responsable: "" }];
+  else if (vista.tipo === "area") preseleccion = [{ area: vista.area, responsable: "" }];
+
+  pintarFilasAreas(preseleccion);
+  $("#dlgTarea").showModal();
+  $("#fTitulo").focus();
+}
+
+$("#formTarea").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const titulo = $("#fTitulo").value.trim();
+  const elegidas = areasElegidas();
+
+  $("#errTitulo").hidden = Boolean(titulo);
+  $("#errAreas").hidden  = elegidas.length > 0;
+  if (!titulo){ $("#fTitulo").focus(); return; }
+  if (!elegidas.length) return;
+
+  const carga = {
+    titulo,
+    detalle:   $("#fDetalle").value.trim(),
+    prioridad: $("#fPrioridad").value,
+    vence:     $("#fVence").value,
+    asignaciones: elegidas
+  };
+
+  const boton = $("#btnGuardarTarea");
+  boton.disabled = true;
+
+  const ok = editando
+    ? await operar("editarTarea", Object.assign({ id: editando }, carga), "Tarea actualizada")
+    : await operar("crearTarea", carga,
+        elegidas.length > 1 ? `Tarea cargada para ${elegidas.length} áreas` : "Tarea cargada");
+
+  boton.disabled = false;
+  if (ok) $("#dlgTarea").close();
+});
+
+async function borrarTarea(idTarea){
+  const t = datos.tareas.find(x => x.id === idTarea);
+  if (!t) return;
+  const aviso = t.asignaciones.length > 1
+    ? `"${t.titulo}" está asignada a ${t.asignaciones.length} áreas. Se saca de todas. Queda guardada en el registro. ¿Seguimos?`
+    : `¿Borrar "${t.titulo}"? Queda guardada en el registro.`;
+  if (!confirm(aviso)) return;
+  await operar("borrarTarea", { id: idTarea }, "Tarea borrada");
+}
+
+/* ==========================================================================
+   ÁREAS
+   ========================================================================== */
+
+function pintarAreas(){
+  $("#listaAreas").innerHTML = datos.areas.map(a => {
+    const n = deArea(a).length;
+    return `
+      <li>
+        <span>${escapar(a)}</span>
+        <span class="area-cuenta">${n} tarea${n===1?"":"s"}</span>
+        <button class="icono peligro" type="button" data-quitar="${escapar(a)}" aria-label="Dar de baja ${escapar(a)}">Dar de baja</button>
+      </li>`;
+  }).join("") || `<li><span style="color:var(--tinta-tenue)">No hay áreas cargadas.</span></li>`;
+}
+
+$("#listaAreas").addEventListener("click", async e => {
+  const b = e.target.closest("[data-quitar]");
+  if (!b) return;
+  const nombre = b.dataset.quitar;
+  const n = deArea(nombre).length;
+  const texto = n
+    ? `"${nombre}" tiene ${n} tarea(s). Se saca de la app pero no se borra nada: queda todo en la planilla. ¿Seguimos?`
+    : `¿Dar de baja el área "${nombre}"?`;
+  if (!confirm(texto)) return;
+  await operar("quitarArea", { nombre }, "Área dada de baja");
+  pintarAreas();
+});
+
+$("#btnAgregarArea").onclick = async () => {
+  const campo = $("#fNuevaArea");
+  const nombre = campo.value.trim();
+  if (!nombre) return;
+  if (datos.areas.some(a => a.toLowerCase() === nombre.toLowerCase())){
+    avisar("Esa área ya existe");
+    return;
+  }
+  const ok = await operar("agregarArea", { nombre }, "Área agregada");
+  if (ok){ campo.value = ""; campo.focus(); pintarAreas(); }
+};
+
+/* ==========================================================================
+   COMPARTIR
+   ========================================================================== */
+
+function textoParaCompartir(){
+  let salida = `*Tareas 2.0 — ${INSTITUCION}*\n${fechaLinda(hoyISO())}\n`;
+  let hubo = false;
+
+  const areas = vista.tipo === "area" ? [vista.area] : datos.areas;
+
+  for (const area of areas){
+    const filas = deArea(area).filter(p => p.a.estado !== "hecha").sort(ordenarPares);
+    if (!filas.length) continue;
+    hubo = true;
+    salida += `\n*${area}*\n`;
+    for (const { t, a } of filas){
+      const partes = [];
+      if (a.responsable) partes.push(a.responsable);
+      if (t.vence) partes.push(asigVencida(t,a) ? `vencida ${fechaLinda(t.vence)}` : `para ${fechaLinda(t.vence)}`);
+      if (a.estado === "curso") partes.push("en curso");
+      if (a.estado === "trabada") partes.push("trabada");
+      if (t.prioridad === "alta") partes.push("prioridad alta");
+      salida += `• ${t.titulo}${partes.length ? ` (${partes.join(", ")})` : ""}\n`;
+    }
+  }
+  return hubo ? salida : "No hay tareas sin cerrar.";
+}
+
+async function copiar(){
+  const texto = textoParaCompartir();
+  try{
+    await navigator.clipboard.writeText(texto);
+    avisar("Copiado. Pegalo en el grupo.");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = texto;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand("copy"); avisar("Copiado. Pegalo en el grupo."); }
+    catch(err){ avisar("No se pudo copiar desde este navegador"); }
+    ta.remove();
+  }
+}
+
+/* ==========================================================================
+   ARRANQUE Y SINCRONIZACIÓN
+   ========================================================================== */
+
+$("#btnNueva").onclick         = () => abrirTarea();
+$("#btnCancelarTarea").onclick = () => $("#dlgTarea").close();
+$("#btnTodasAreas").onclick    = () => marcarTodas(true);
+$("#btnNingunaArea").onclick   = () => marcarTodas(false);
+$("#btnAreas").onclick         = () => { pintarAreas(); $("#dlgAreas").showModal(); };
+$("#btnCerrarAreas").onclick   = () => $("#dlgAreas").close();
+$("#btnImprimir").onclick      = () => window.print();
+$("#btnCopiar").onclick        = copiar;
+$("#btnActualizar").onclick    = () => sincronizar(true);
+
+$("#fNuevaArea").addEventListener("keydown", e => {
+  if (e.key === "Enter"){ e.preventDefault(); $("#btnAgregarArea").click(); }
+});
+
+$("#busqueda").addEventListener("input", e => {
+  filtros.texto = e.target.value.trim();
+  if (vista.tipo === "area") pintarListado();
+});
+
+async function sincronizar(avisando){
+  try{
+    datos = await API.llamar("estado", {});
+    franja("");
+    refrescar();
+    if (avisando) avisar("Al día");
+    return true;
+  }catch(err){
+    franja("Sin conexión con el servidor: " + err.message);
+    return false;
+  }
+}
+
+// Cada vez que se vuelve a la pestaña, y cada dos minutos, traemos lo último.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && ocupado === 0) sincronizar(false);
+});
+
+setInterval(() => {
+  if (!document.hidden && ocupado === 0) sincronizar(false);
+}, 120000);
+
+(async function iniciar(){
+  pintarCabecera();
+
+  if (!API_URL){
+    franja("Falta pegar la URL del backend en API_URL, arriba del archivo.");
+    return;
+  }
+
+  const guardado = leerQuien();
+  if (guardado) QUIEN = guardado;
+
+  const ok = await sincronizar(false);
+  if (!ok) return;
+
+  pintarSesion();
+  if (!QUIEN.nombre) pedirQuien();
+})();
+</script>
+</body>
+</html>
