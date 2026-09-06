@@ -164,7 +164,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:14px}
 
 .cuadro{
-  display:flex;flex-direction:column;
+  display:flex;flex-direction:column;position:relative;
   background:var(--hoja);border:1px solid var(--linea);
   border-top:4px solid var(--tinta-tenue);border-radius:var(--radio);
   padding:15px 16px 0;text-align:left;cursor:pointer;min-height:158px;
@@ -175,8 +175,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .cuadro.completo{border-top-color:var(--ok)}
 .cuadro.completo:hover{border-top-color:var(--ok)}
 .cuadro.con-vencidas{border-top-color:var(--club)}
-.cuadro.vacio-area{border-top-color:var(--linea-fuerte);cursor:default}
-.cuadro.vacio-area:hover{border-color:var(--linea)}
+.cuadro.vacio-area{border-top-color:var(--linea-fuerte)}
+
+.candado{
+  position:absolute;top:12px;right:12px;
+  color:var(--tinta-tenue);opacity:.55;
+}
 
 .cuadro-nombre{
   font-family:"Archivo Narrow",Arial,sans-serif;
@@ -277,6 +281,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .prioridad-alta{color:var(--club);font-weight:600}
 .meta-deporte{color:var(--tinta-tenue)}
 .meta-orden{color:var(--club);font-weight:600}
+
 .ordenes{
   border:1px solid var(--club);border-radius:10px;
   background:var(--club-suave);padding:14px 16px;margin-bottom:20px;
@@ -293,6 +298,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .orden-datos{color:var(--tinta-tenue);font-size:.85rem;margin-top:2px}
 .orden-acciones{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .orden.rechazada{border-color:var(--club)}
+
 .icono-area{display:block;color:var(--tinta-tenue);flex:none}
 .cuadro .icono-area{margin:0 auto 8px}
 .cuadro.completo .icono-area{color:var(--ok)}
@@ -395,7 +401,7 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
   font-size:13px;color:var(--tinta-media);
 }
 
-.campo input[type="text"],.campo input[type="date"],.campo select,.campo textarea{
+.campo input[type="text"],.campo input[type="password"],.campo input[type="date"],.campo select,.campo textarea{
   width:100%;border:1px solid var(--linea-fuerte);border-radius:var(--radio);
   padding:8px 10px;background:var(--hoja);
 }
@@ -458,21 +464,13 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
 
 .lista-areas li > span:first-child{flex:1}
 
+.sin-clave{color:var(--club);font-weight:600}
+.con-clave{color:var(--ok);font-weight:600}
+
 .aviso{
   background:var(--club-suave);border-left:3px solid var(--club);
   padding:10px 13px;font-size:13.5px;margin-bottom:16px;
 }
-
-.opciones-quien{display:flex;flex-direction:column;gap:8px}
-
-.opcion-quien{
-  display:flex;align-items:center;gap:9px;
-  border:1px solid var(--linea-fuerte);border-radius:var(--radio);
-  padding:10px 12px;cursor:pointer;
-}
-
-.opcion-quien:hover{border-color:var(--tinta-tenue)}
-.opcion-quien input{width:17px;height:17px;accent-color:var(--club)}
 
 #dlgFoto{width:min(920px,calc(100vw - 32px));background:var(--tinta)}
 #dlgFoto img{display:block;width:100%;height:auto;max-height:80vh;object-fit:contain}
@@ -531,17 +529,20 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
 <div class="envoltorio">
 
   <div class="barra">
-    <button class="boton boton-principal" id="btnNueva">Cargar tarea</button>
-    <button class="boton" id="btnAreas">Editar áreas</button>
-    <button class="boton" id="btnRegistro">Registro</button>
+    <button class="boton boton-principal" id="btnNueva" hidden>Cargar tarea</button>
+    <button class="boton" id="btnAreas" hidden>Editar áreas</button>
+    <button class="boton" id="btnClaves" hidden>Claves</button>
+    <button class="boton" id="btnRegistro" hidden>Registro</button>
+    <button class="boton" id="btnGerencia">Entrar como Gerencia</button>
+    <button class="boton boton-tenue" id="btnCD">Comisión Directiva</button>
     <div class="espaciador"></div>
     <button class="boton boton-tenue" id="btnActualizar">Actualizar</button>
-    <button class="boton boton-tenue" id="btnCopiar">Copiar para WhatsApp</button>
-    <button class="boton boton-tenue" id="btnImprimir">Imprimir</button>
+    <button class="boton boton-tenue" id="btnCopiar" hidden>Copiar para WhatsApp</button>
+    <button class="boton boton-tenue" id="btnImprimir" hidden>Imprimir</button>
   </div>
 
   <section id="vistaPortada">
-    <div class="ordenes" id="panelOrdenes" hidden></div>
+    <div class="ordenes" id="panelAvisos" hidden></div>
     <div class="rejilla" id="rejilla"></div>
   </section>
 
@@ -571,26 +572,28 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
 
 <div class="cartel" id="cartel" hidden role="status"></div>
 
-<!-- ¿Quién sos? -->
-<dialog id="dlgQuien">
-  <form id="formQuien">
+<!-- Entrar a un perfil -->
+<dialog id="dlgIngreso">
+  <form id="formIngreso">
     <div class="dialogo-cabecera">
-      <h2>¿Quién sos?</h2>
-      <p>Queda registrado en cada movimiento. Lo podés cambiar cuando quieras.</p>
+      <h2 id="tituloIngreso">Entrar</h2>
+      <p id="pistaIngreso">Tu nombre queda registrado en cada movimiento.</p>
     </div>
     <div class="dialogo-cuerpo">
       <div class="campo">
-        <label for="qNombre">Tu nombre</label>
-        <input type="text" id="qNombre" maxlength="60" autocomplete="name" placeholder="Nombre y apellido">
-        <div class="error" id="errQuienNombre" hidden>Poné tu nombre.</div>
+        <label for="iNombre">Tu nombre</label>
+        <input type="text" id="iNombre" maxlength="60" autocomplete="name" placeholder="Nombre y apellido">
       </div>
       <div class="campo">
-        <label id="rotuloRol">Desde dónde entrás</label>
-        <div class="opciones-quien" id="opcionesRol" role="radiogroup" aria-labelledby="rotuloRol"></div>
+        <label for="iClave">Clave</label>
+        <input type="password" id="iClave" maxlength="60" autocomplete="current-password">
+        <p class="pista">Si el perfil todavía no tiene clave, dejala vacía y entrá.</p>
       </div>
+      <div class="error" id="errIngreso" hidden></div>
     </div>
     <div class="dialogo-pie">
-      <button type="submit" class="boton boton-principal">Entrar</button>
+      <button type="button" class="boton" id="btnCancelarIngreso">Cancelar</button>
+      <button type="submit" class="boton boton-principal" id="btnEntrar">Entrar</button>
     </div>
   </form>
 </dialog>
@@ -637,7 +640,7 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
         </div>
       </div>
       <p class="aclaracion" id="avisoCD" hidden style="color:var(--club)">
-        Entrás como Comisión Directiva: esto se carga como orden y no llega al área hasta que Gerencia la apruebe.
+        Entrás como Comisión Directiva: esto se carga como aviso y no llega al área hasta que Gerencia lo apruebe.
       </p>
       <div class="campo" id="campoDeporte" hidden>
         <label for="fDeporte">Deporte</label>
@@ -709,6 +712,49 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
   </div>
 </dialog>
 
+<!-- Claves -->
+<dialog id="dlgClaves">
+  <div class="dialogo-cabecera">
+    <h2>Claves de acceso</h2>
+    <p>Cada perfil entra con la suya. La portada con los números la ve cualquiera, sin clave.</p>
+  </div>
+  <div class="dialogo-cuerpo">
+    <div class="aviso">Las claves no se guardan en ningún lado en texto: si alguien se la olvida, se la ponés de nuevo desde acá.</div>
+    <ul class="lista-areas" id="listaClaves"></ul>
+  </div>
+  <div class="dialogo-pie">
+    <button class="boton boton-principal" id="btnCerrarClaves" type="button">Listo</button>
+  </div>
+</dialog>
+
+<!-- Poner una clave -->
+<dialog id="dlgClave">
+  <form id="formClave">
+    <div class="dialogo-cabecera">
+      <h2 id="tituloClave">Clave</h2>
+      <p>Se la tenés que pasar vos a quien corresponda. La app no la manda sola.</p>
+    </div>
+    <div class="dialogo-cuerpo">
+      <div class="campo">
+        <label for="nClave">Clave nueva</label>
+        <input type="password" id="nClave" maxlength="60" autocomplete="new-password">
+      </div>
+      <div class="campo">
+        <label for="nClave2">Repetila</label>
+        <input type="password" id="nClave2" maxlength="60" autocomplete="new-password">
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--tinta-media)">
+        <input type="checkbox" id="verClave"> Mostrar lo que escribo
+      </label>
+      <div class="error" id="errClave" hidden></div>
+    </div>
+    <div class="dialogo-pie">
+      <button type="button" class="boton" id="btnCancelarClave">Cancelar</button>
+      <button type="submit" class="boton boton-principal" id="btnGuardarClave">Guardar clave</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlgFoto">
   <img id="fotoGrande" alt="Foto de la tarea cerrada">
   <div class="dialogo-pie">
@@ -748,7 +794,8 @@ const API = {
         redirect: "follow",
         body: JSON.stringify(Object.assign({
           accion: accion,
-          quien: QUIEN.etiqueta || "sin identificar",
+          quien: SESION.nombre || "sin identificar",
+          token: SESION.token || "",
           clave: CLAVE
         }, carga || {}))
       });
@@ -770,19 +817,28 @@ const API = {
    ESTADO
    ========================================================================== */
 
+// Lo que ve cualquiera sin clave: nombres de áreas y cantidades.
+let tablero = { areas: [], totales: { abiertas:0, sinCerrar:0, hoy:0, vencidas:0 } };
+
+// Lo que se ve con clave: las tareas que le tocan a tu perfil.
 let datos = { areas: [], tareas: [] };
+
 let vista = { tipo: "portada", area: null };
-let QUIEN = { nombre: "", rol: "", etiqueta: "" };
+let SESION = { nombre: "", rol: "", token: "" };
 
-// Quien entra con este rol carga órdenes, no tareas comunes.
+const ROL_GERENCIA = "Gerencia";
 const ROL_CD = "Comisión Directiva";
-function soyCD(){ return QUIEN.rol === ROL_CD; }
-function soyGerencia(){ return QUIEN.rol === "Gerencia"; }
 
-// Una orden sin aprobar todavía no existe para las áreas.
-function ordenPendiente(t){ return t.origen === "cd" && t.aprobacion === "pendiente"; }
-function ordenRechazada(t){ return t.origen === "cd" && t.aprobacion === "rechazada"; }
-function tareaVigente(t){ return !ordenPendiente(t) && !ordenRechazada(t); }
+function haySesion(){ return Boolean(SESION.token); }
+function soyGerencia(){ return SESION.rol === ROL_GERENCIA; }
+function soyCD(){ return SESION.rol === ROL_CD; }
+function puedoVerArea(area){ return soyGerencia() || soyCD() || SESION.rol === area; }
+function puedoMover(area){ return soyGerencia() || SESION.rol === area; }
+
+// Un aviso de la CD sin aprobar todavía no existe para las áreas.
+function avisoPendiente(t){ return t.origen === "cd" && t.aprobacion === "pendiente"; }
+function avisoRechazado(t){ return t.origen === "cd" && t.aprobacion === "rechazada"; }
+function tareaVigente(t){ return !avisoPendiente(t) && !avisoRechazado(t); }
 
 const filtros = { estado: "abiertas", texto: "" };
 
@@ -829,8 +885,6 @@ function selloLindo(ms){
 }
 
 function tareaAbierta(t){ return t.asignaciones.some(a => a.estado !== "hecha"); }
-function tareaVencida(t){ return Boolean(t.vence) && tareaAbierta(t) && t.vence < hoyISO(); }
-function tareaVenceHoy(t){ return Boolean(t.vence) && tareaAbierta(t) && t.vence === hoyISO(); }
 function asigVencida(t,a){ return Boolean(t.vence) && a.estado !== "hecha" && t.vence < hoyISO(); }
 function asigVenceHoy(t,a){ return Boolean(t.vence) && a.estado !== "hecha" && t.vence === hoyISO(); }
 
@@ -850,14 +904,26 @@ function avisar(texto){
   temporizadorCartel = setTimeout(() => { c.hidden = true; }, 3400);
 }
 
+function sesionVencida(mensaje){
+  return /sesión venció|Tu perfil no puede/i.test(mensaje || "");
+}
+
 // Envoltorio: llama al backend, refresca y avisa si algo falla.
 async function operar(accion, carga, mensajeOk){
   try{
-    datos = await API.llamar(accion, carga);
+    const r = await API.llamar(accion, carga);
+    datos = { areas: r.areas, tareas: r.tareas };
+    if (r.tablero) tablero = r.tablero;
     refrescar();
     if (mensajeOk) avisar(mensajeOk);
     return true;
   }catch(err){
+    if (sesionVencida(err.message)){
+      cerrarSesionLocal();
+      franja("Tu sesión venció. Volvé a entrar con tu clave.");
+      sincronizar(false);
+      return false;
+    }
     franja("No se pudo guardar: " + err.message + ". Revisá la conexión y probá de nuevo.");
     refrescar();
     return false;
@@ -865,58 +931,113 @@ async function operar(accion, carga, mensajeOk){
 }
 
 /* ==========================================================================
-   IDENTIFICACIÓN
+   SESIÓN
    ========================================================================== */
 
-const CLAVE_QUIEN = "tareas20-quien";
+const GUARDADO = "tareas20-sesion";
 
-function leerQuien(){
+function leerSesionGuardada(){
   try{
-    const bruto = localStorage.getItem(CLAVE_QUIEN);
+    const bruto = localStorage.getItem(GUARDADO);
     return bruto ? JSON.parse(bruto) : null;
   }catch(e){ return null; }
 }
 
-function guardarQuien(q){
-  try{ localStorage.setItem(CLAVE_QUIEN, JSON.stringify(q)); }catch(e){ /* modo privado */ }
+function guardarSesion(){
+  try{ localStorage.setItem(GUARDADO, JSON.stringify(SESION)); }catch(e){ /* modo privado */ }
+}
+
+function cerrarSesionLocal(){
+  SESION = { nombre: "", rol: "", token: "" };
+  datos = { areas: datos.areas, tareas: [] };
+  vista = { tipo: "portada", area: null };
+  try{ localStorage.removeItem(GUARDADO); }catch(e){ /* nada */ }
+  pintarSesion();
 }
 
 function pintarSesion(){
   const s = $("#sesion");
-  if (!QUIEN.nombre){ s.hidden = true; return; }
   s.hidden = false;
-  s.innerHTML = `<span>Estás como <strong>${escapar(QUIEN.nombre)}</strong> · ${escapar(QUIEN.rol)}</span>
-                 <button type="button" id="btnCambiarQuien">Cambiar</button>`;
-  $("#btnCambiarQuien").onclick = () => pedirQuien();
+
+  if (!haySesion()){
+    s.innerHTML = `<span>Estás mirando el tablero general. Entrá a tu área para ver y cerrar tareas.</span>`;
+    return;
+  }
+
+  s.innerHTML = `<span>Estás como <strong>${escapar(SESION.nombre)}</strong> · ${escapar(SESION.rol)}</span>
+                 <button type="button" id="btnSalir">Salir</button>`;
+  $("#btnSalir").onclick = salir;
 }
 
-function pedirQuien(){
-  const roles = ["Gerencia", ROL_CD].concat(datos.areas);
-  $("#opcionesRol").innerHTML = roles.map((r,i) => `
-    <label class="opcion-quien">
-      <input type="radio" name="rol" value="${escapar(r)}" ${(QUIEN.rol === r || (!QUIEN.rol && i===0)) ? "checked" : ""}>
-      <span>${escapar(r)}</span>
-    </label>`).join("");
-  $("#qNombre").value = QUIEN.nombre || "";
-  $("#errQuienNombre").hidden = true;
-  $("#dlgQuien").showModal();
-  $("#qNombre").focus();
+let ingresandoA = "";
+
+function pedirIngreso(rol){
+  ingresandoA = rol;
+  $("#tituloIngreso").textContent = "Entrar como " + rol;
+  $("#pistaIngreso").textContent = (rol === ROL_GERENCIA || rol === ROL_CD)
+    ? "Tu nombre queda registrado en cada movimiento."
+    : `Vas a ver y cerrar las tareas de ${rol}.`;
+  $("#errIngreso").hidden = true;
+  $("#iClave").value = "";
+  $("#iNombre").value = SESION.nombre || "";
+  $("#dlgIngreso").showModal();
+  ($("#iNombre").value ? $("#iClave") : $("#iNombre")).focus();
 }
 
-$("#formQuien").addEventListener("submit", e => {
+function errorIngreso(texto){
+  const e = $("#errIngreso");
+  e.textContent = texto;
+  e.hidden = false;
+}
+
+$("#formIngreso").addEventListener("submit", async e => {
   e.preventDefault();
-  const nombre = $("#qNombre").value.trim();
-  $("#errQuienNombre").hidden = Boolean(nombre);
-  if (!nombre){ $("#qNombre").focus(); return; }
 
-  const rolElegido = document.querySelector('#opcionesRol input[name="rol"]:checked');
-  const rol = rolElegido ? rolElegido.value : "Gerencia";
+  const nombre = $("#iNombre").value.trim();
+  if (!nombre){ errorIngreso("Poné tu nombre."); $("#iNombre").focus(); return; }
 
-  QUIEN = { nombre, rol, etiqueta: `${nombre} (${rol})` };
-  guardarQuien(QUIEN);
-  pintarSesion();
-  $("#dlgQuien").close();
+  const boton = $("#btnEntrar");
+  boton.disabled = true;
+  boton.textContent = "Entrando…";
+
+  try{
+    const r = await API.llamar("ingresar", {
+      rol: ingresandoA,
+      clave: $("#iClave").value,
+      nombre: nombre
+    });
+
+    SESION = { nombre: nombre, rol: r.rol, token: r.token };
+    guardarSesion();
+
+    datos = { areas: r.estado.areas, tareas: r.estado.tareas };
+    tablero = r.estado.tablero;
+
+    $("#iClave").value = "";
+    $("#dlgIngreso").close();
+    pintarSesion();
+
+    if (soyGerencia() || soyCD()) volverAPortada();
+    else abrirArea(SESION.rol);
+
+    franja("");
+    avisar("Hola, " + nombre);
+
+  }catch(err){
+    errorIngreso(err.message);
+  }finally{
+    boton.disabled = false;
+    boton.textContent = "Entrar";
+  }
 });
+
+$("#btnCancelarIngreso").onclick = () => $("#dlgIngreso").close();
+
+function salir(){
+  cerrarSesionLocal();
+  sincronizar(false);
+  avisar("Saliste");
+}
 
 /* ==========================================================================
    CABECERA
@@ -930,42 +1051,54 @@ function pintarCabecera(){
 }
 
 function pintarResumen(){
-  const vigentes = datos.tareas.filter(tareaVigente);
-  const abiertas = vigentes.filter(tareaAbierta).length;
-  const paraHoy  = vigentes.filter(tareaVenceHoy).length;
-  const vencidas = vigentes.filter(tareaVencida).length;
-  const sinCerrar = datos.tareas
-    .reduce((n,t) => n + t.asignaciones.filter(a => a.estado !== "hecha").length, 0);
+  const t = tablero.totales || { abiertas:0, sinCerrar:0, hoy:0, vencidas:0 };
 
   $("#resumen").innerHTML = `
     <div class="resumen-dato">
-      <span class="resumen-valor">${abiertas}</span>
+      <span class="resumen-valor">${t.abiertas}</span>
       <span class="resumen-rotulo">tareas abiertas</span>
     </div>
     <div class="resumen-dato">
-      <span class="resumen-valor">${sinCerrar}</span>
+      <span class="resumen-valor">${t.sinCerrar}</span>
       <span class="resumen-rotulo">sin cerrar por área</span>
     </div>
     <div class="resumen-dato">
-      <span class="resumen-valor">${paraHoy}</span>
+      <span class="resumen-valor">${t.hoy}</span>
       <span class="resumen-rotulo">para hoy</span>
     </div>
     <div class="resumen-dato">
-      <span class="resumen-valor ${vencidas ? "alerta" : ""}">${vencidas}</span>
+      <span class="resumen-valor ${t.vencidas ? "alerta" : ""}">${t.vencidas}</span>
       <span class="resumen-rotulo">vencidas</span>
     </div>`;
 }
 
+function aplicarPermisos(){
+  const mando = soyGerencia() || soyCD();
+
+  $("#btnNueva").hidden      = !mando;
+  $("#btnNueva").textContent = soyCD() ? "Cargar aviso" : "Cargar tarea";
+  $("#btnAreas").hidden      = !soyGerencia();
+  $("#btnClaves").hidden     = !soyGerencia();
+  $("#btnRegistro").hidden   = !mando;
+  $("#btnCopiar").hidden     = !haySesion();
+  $("#btnImprimir").hidden   = !haySesion();
+  $("#btnGerencia").hidden   = soyGerencia();
+  $("#btnCD").hidden         = soyCD();
+}
+
 /* ==========================================================================
-   PORTADA
+   AVISOS DE LA COMISIÓN DIRECTIVA
    ========================================================================== */
 
-function pintarOrdenes(){
-  const panel = $("#panelOrdenes");
-  const pendientes = datos.tareas.filter(ordenPendiente);
-  const rechazadas = datos.tareas.filter(ordenRechazada);
+function pintarAvisos(){
+  const panel = $("#panelAvisos");
 
-  if (!pendientes.length && !rechazadas.length){ panel.hidden = true; return; }
+  if (!(soyGerencia() || soyCD())){ panel.hidden = true; return; }
+
+  const pendientes = datos.tareas.filter(avisoPendiente);
+  const rechazados = datos.tareas.filter(avisoRechazado);
+
+  if (!pendientes.length && !rechazados.length){ panel.hidden = true; return; }
   panel.hidden = false;
 
   const puedeDecidir = soyGerencia();
@@ -977,110 +1110,129 @@ function pintarOrdenes(){
            <button class="boton boton-principal" data-aprobar="${escapar(t.id)}">Aprobar y bajar al área</button>
            <button class="boton" data-rechazar="${escapar(t.id)}">Rechazar</button>
          </div>`
-      : `<div class="orden-datos">Esperando que Gerencia la apruebe.</div>`;
+      : `<div class="orden-datos">Esperando que Gerencia lo apruebe.</div>`;
     return `
       <div class="orden">
         <div class="orden-titulo">${escapar(t.titulo)}</div>
-        <div class="orden-datos">Para ${escapar(areas)} · la cargó ${escapar(t.creadaPor)}</div>
+        <div class="orden-datos">Para ${escapar(areas)} · lo cargó ${escapar(t.creadaPor)}</div>
         ${t.detalle ? `<div class="orden-datos">${escapar(t.detalle)}</div>` : ""}
         ${acciones}
       </div>`;
   };
 
-  const trozoRechazada = t => `
+  const trozoRechazado = t => `
     <div class="orden rechazada">
       <div class="orden-titulo">${escapar(t.titulo)}</div>
-      <div class="orden-datos">Rechazada por ${escapar(t.aprob ? t.aprob.por : "")}: ${escapar(t.aprob ? t.aprob.observaciones : "")}</div>
-      <div class="orden-acciones">
-        <button class="boton" data-editar-orden="${escapar(t.id)}">Corregir y volver a pedir</button>
-        <button class="boton" data-descartar-orden="${escapar(t.id)}">Descartar</button>
-      </div>
+      <div class="orden-datos">Rechazado por ${escapar(t.aprob ? t.aprob.por : "")}: ${escapar(t.aprob ? t.aprob.observaciones : "")}</div>
+      ${soyCD() ? `<div class="orden-acciones">
+        <button class="boton" data-editar-aviso="${escapar(t.id)}">Corregir y volver a pedir</button>
+        <button class="boton" data-descartar-aviso="${escapar(t.id)}">Descartar</button>
+      </div>` : ""}
     </div>`;
 
+  const bajada = puedeDecidir
+    ? "Los cargó la Comisión Directiva. Todavía no llegaron a las áreas: bajan cuando los aprobás."
+    : "Todavía no llegaron a las áreas. Bajan cuando Gerencia los aprueba.";
+
   panel.innerHTML =
-    `<h2>Órdenes de Comisión Directiva</h2>
-     <p class="aclaracion">Todavía no llegaron a las áreas. Bajan cuando Gerencia las aprueba.</p>`
+    `<h2>Avisos de la Comisión Directiva</h2>
+     <p class="aclaracion">${bajada}</p>`
     + pendientes.map(trozoPendiente).join("")
-    + rechazadas.map(trozoRechazada).join("");
+    + rechazados.map(trozoRechazado).join("");
 }
 
-$("#panelOrdenes").addEventListener("click", async e => {
+$("#panelAvisos").addEventListener("click", async e => {
   const ap = e.target.closest("[data-aprobar]");
   if (ap){
     const obs = prompt("Comentario para el área (opcional):", "");
     if (obs === null) return;
-    await operar("aprobarOrden", { id: ap.dataset.aprobar, observaciones: obs.trim() }, "Orden aprobada");
+    await operar("aprobarAviso", { id: ap.dataset.aprobar, observaciones: obs.trim() }, "Aviso aprobado");
     return;
   }
+
   const re = e.target.closest("[data-rechazar]");
   if (re){
-    const motivo = prompt("¿Por qué la rechazás? Se le muestra a quien la pidió:", "");
+    const motivo = prompt("¿Por qué lo rechazás? Se le muestra a quien lo pidió:", "");
     if (motivo === null) return;
     if (!motivo.trim()){ avisar("Hace falta el motivo."); return; }
-    await operar("rechazarOrden", { id: re.dataset.rechazar, observaciones: motivo.trim() }, "Orden rechazada");
+    await operar("rechazarAviso", { id: re.dataset.rechazar, observaciones: motivo.trim() }, "Aviso rechazado");
     return;
   }
-  const ed = e.target.closest("[data-editar-orden]");
-  if (ed){ abrirTarea(ed.dataset.editarOrden); return; }
 
-  const de = e.target.closest("[data-descartar-orden]");
+  const ed = e.target.closest("[data-editar-aviso]");
+  if (ed){ abrirTarea(ed.dataset.editarAviso); return; }
+
+  const de = e.target.closest("[data-descartar-aviso]");
   if (de){
-    const t = datos.tareas.find(x => x.id === de.dataset.descartarOrden);
-    if (t && confirm(`¿Descartar la orden "${t.titulo}"?`)){
-      await operar("borrarTarea", { id: t.id }, "Orden descartada");
+    const t = datos.tareas.find(x => x.id === de.dataset.descartarAviso);
+    if (t && confirm(`¿Descartar el aviso "${t.titulo}"?`)){
+      await operar("borrarTarea", { id: t.id }, "Aviso descartado");
     }
   }
 });
 
+/* ==========================================================================
+   PORTADA
+   ========================================================================== */
+
+const CANDADO = `<svg class="candado" width="15" height="15" viewBox="0 0 24 24" fill="none"
+  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>`;
+
 function pintarPortada(){
   const rejilla = $("#rejilla");
+  const areas = tablero.areas || [];
 
-  if (!datos.areas.length){
-    rejilla.innerHTML = `
-      <div class="vacio" style="grid-column:1/-1">
-        <h2>Todavía no hay áreas</h2>
-        <p>Agregá las áreas del club para empezar a repartir tareas.</p>
-        <button class="boton boton-principal" data-abrir-areas>Editar áreas</button>
-      </div>`;
+  if (!areas.length){
+    rejilla.innerHTML = soyGerencia()
+      ? `<div class="vacio" style="grid-column:1/-1">
+           <h2>Todavía no hay áreas</h2>
+           <p>Agregá las áreas del club para empezar a repartir tareas.</p>
+           <button class="boton boton-principal" data-abrir-areas>Editar áreas</button>
+         </div>`
+      : `<div class="vacio" style="grid-column:1/-1">
+           <h2>Todavía no hay áreas cargadas</h2>
+           <p>Cuando Gerencia las cargue, van a aparecer acá.</p>
+         </div>`;
     return;
   }
 
-  rejilla.innerHTML = datos.areas.map(area => {
-    const pares = deArea(area);
-    const total = pares.length;
-    const cerradas = pares.filter(p => p.a.estado === "hecha").length;
-    const pendientes = total - cerradas;
-    const vencidas = pares.filter(p => asigVencida(p.t,p.a)).length;
+  rejilla.innerHTML = areas.map(r => {
+    const abierto = puedoVerArea(r.nombre);
+    const candado = abierto ? "" : CANDADO;
 
-    if (!total){
+    if (!r.total){
       return `
-        <button class="cuadro vacio-area" data-area="${escapar(area)}" disabled>
-          ${iconoArea(area,24)}
-          <h3 class="cuadro-nombre">${escapar(area)}</h3>
+        <button class="cuadro vacio-area" data-area="${escapar(r.nombre)}">
+          ${candado}
+          ${iconoArea(r.nombre,24)}
+          <h3 class="cuadro-nombre">${escapar(r.nombre)}</h3>
           <p class="cuadro-sin">Sin tareas asignadas</p>
         </button>`;
     }
 
-    const completo = pendientes === 0;
+    const completo = r.pendientes === 0;
     const clases = ["cuadro"];
     if (completo) clases.push("completo");
-    else if (vencidas) clases.push("con-vencidas");
+    else if (r.vencidas) clases.push("con-vencidas");
 
     const cifra = completo
-      ? `<div class="cuadro-cifra"><span class="cuadro-numero">${cerradas}</span><span class="cuadro-de">de ${total}</span></div>
+      ? `<div class="cuadro-cifra"><span class="cuadro-numero">${r.hechas}</span><span class="cuadro-de">de ${r.total}</span></div>
          <p class="cuadro-rotulo">Todo cerrado</p>`
-      : `<div class="cuadro-cifra"><span class="cuadro-numero">${pendientes}</span><span class="cuadro-de">de ${total}</span></div>
+      : `<div class="cuadro-cifra"><span class="cuadro-numero">${r.pendientes}</span><span class="cuadro-de">de ${r.total}</span></div>
          <p class="cuadro-rotulo">Tareas pendientes</p>`;
 
-    const alerta = vencidas ? `<p class="cuadro-alerta">${vencidas} vencida${vencidas===1?"":"s"}</p>` : "";
-    const porcentaje = Math.round((cerradas/total)*100);
+    const alerta = r.vencidas ? `<p class="cuadro-alerta">${r.vencidas} vencida${r.vencidas===1?"":"s"}</p>` : "";
+    const porcentaje = Math.round((r.hechas / r.total) * 100);
 
     return `
-      <button class="${clases.join(" ")}" data-area="${escapar(area)}"
-              aria-label="${escapar(area)}: ${pendientes} pendientes de ${total}">
-        ${iconoArea(area,24)}
-        <h3 class="cuadro-nombre">${escapar(area)}</h3>
+      <button class="${clases.join(" ")}" data-area="${escapar(r.nombre)}"
+              aria-label="${escapar(r.nombre)}: ${r.pendientes} pendientes de ${r.total}, ${r.hechas} realizadas">
+        ${candado}
+        ${iconoArea(r.nombre,24)}
+        <h3 class="cuadro-nombre">${escapar(r.nombre)}</h3>
         ${cifra}
+        <p class="cuadro-rotulo">${r.hechas} realizada${r.hechas===1?"":"s"}</p>
         ${alerta}
         <div class="cuadro-pie"><div class="barrita" role="presentation"><span style="width:${porcentaje}%"></span></div></div>
       </button>`;
@@ -1089,8 +1241,13 @@ function pintarPortada(){
 
 $("#rejilla").addEventListener("click", e => {
   if (e.target.closest("[data-abrir-areas]")){ pintarAreas(); $("#dlgAreas").showModal(); return; }
+
   const c = e.target.closest(".cuadro[data-area]");
-  if (c && !c.disabled) abrirArea(c.dataset.area);
+  if (!c) return;
+
+  const area = c.dataset.area;
+  if (puedoVerArea(area)) abrirArea(area);
+  else pedirIngreso(area);
 });
 
 function abrirArea(area){
@@ -1147,7 +1304,6 @@ function pasaFiltro(t,a){
   }
   return true;
 }
-
 
 /* =====================================================================
    ICONOS DE LAS AREAS
@@ -1216,8 +1372,8 @@ function pintarListado(){
     cont.innerHTML = `
       <div class="vacio">
         <h2>${escapar(area)} no tiene tareas</h2>
-        <p>Cargá una tarea y elegí esta área para que aparezca acá.</p>
-        <button class="boton boton-principal" data-nueva-aca>Cargar tarea para ${escapar(area)}</button>
+        <p>${soyGerencia() ? "Cargá una tarea y elegí esta área para que aparezca acá." : "Cuando Gerencia cargue algo para esta área, aparece acá."}</p>
+        ${soyGerencia() ? `<button class="boton boton-principal" data-nueva-aca>Cargar tarea para ${escapar(area)}</button>` : ""}
       </div>`;
     return;
   }
@@ -1239,7 +1395,7 @@ function filaTarea(t,a,area){
   if (a.responsable) meta.push(`<span class="meta-responsable">${escapar(a.responsable)}</span>`);
   if (t.prioridad === "alta") meta.push(`<span class="prioridad-alta">Prioridad alta</span>`);
   if (t.deporte && area === "Deporte") meta.push(`<span class="meta-deporte">${escapar(t.deporte)}</span>`);
-  if (t.origen === "cd") meta.push(`<span class="meta-orden">Orden de CD</span>`);
+  if (t.origen === "cd") meta.push(`<span class="meta-orden">Aviso de la CD</span>`);
   if (t.vence){
     const clase = vencida ? "vencida" : (hoy ? "hoy" : "");
     const texto = vencida ? `Venció el ${fechaLinda(t.vence)}` : (hoy ? "Vence hoy" : `Para el ${fechaLinda(t.vence)}`);
@@ -1274,6 +1430,16 @@ function filaTarea(t,a,area){
     .map(v => `<option value="${v}" ${a.estado===v?"selected":""}>${ESTADOS[v]}</option>`)
     .join("");
 
+  const acciones = [];
+  if (puedoMover(area)){
+    acciones.push(`<select class="selector-estado" data-id="${t.id}" data-area="${escapar(area)}"
+                aria-label="Estado de ${escapar(area)} para: ${escapar(t.titulo)}">${opciones}</select>`);
+  }
+  if (soyGerencia()){
+    acciones.push(`<button class="icono" data-editar="${t.id}" aria-label="Editar: ${escapar(t.titulo)}">Editar</button>`);
+    acciones.push(`<button class="icono peligro" data-borrar="${t.id}" aria-label="Borrar: ${escapar(t.titulo)}">Borrar</button>`);
+  }
+
   return `
     <article class="tarea ${a.estado==="hecha"?"hecha":""}" data-estado="${a.estado}">
       <div class="marca"></div>
@@ -1283,12 +1449,7 @@ function filaTarea(t,a,area){
         ${meta.length ? `<div class="tarea-meta">${meta.join("")}</div>` : ""}
         ${cierre}
       </div>
-      <div class="tarea-acciones">
-        <select class="selector-estado" data-id="${t.id}" data-area="${escapar(area)}"
-                aria-label="Estado de ${escapar(area)} para: ${escapar(t.titulo)}">${opciones}</select>
-        <button class="icono" data-editar="${t.id}" aria-label="Editar: ${escapar(t.titulo)}">Editar</button>
-        <button class="icono peligro" data-borrar="${t.id}" aria-label="Borrar: ${escapar(t.titulo)}">Borrar</button>
-      </div>
+      <div class="tarea-acciones">${acciones.join("")}</div>
     </article>`;
 }
 
@@ -1359,15 +1520,20 @@ $("#btnRegistro").onclick = abrirRegistro;
 
 function refrescar(){
   pintarResumen();
+  aplicarPermisos();
+
+  // Si te fuiste o venció la sesión, no te quedás dentro de un área.
+  if (vista.tipo !== "portada" && !haySesion()) vista = { tipo:"portada", area:null };
+  if (vista.tipo === "area" && !puedoVerArea(vista.area)) vista = { tipo:"portada", area:null };
+
   $("#vistaPortada").hidden  = vista.tipo !== "portada";
   $("#vistaArea").hidden     = vista.tipo !== "area";
   $("#vistaRegistro").hidden = vista.tipo !== "registro";
 
   if (vista.tipo === "portada"){
-    pintarOrdenes();
+    pintarAvisos();
     pintarPortada();
   }else if (vista.tipo === "area"){
-    if (!datos.areas.includes(vista.area)) return volverAPortada();
     pintarFiltros();
     pintarListado();
   }
@@ -1454,7 +1620,7 @@ function abrirCierre(idTarea, area, t, a){
   cerrando = { idTarea, area };
   limpiarFoto();
   $("#errQuien").hidden = true;
-  $("#cQuien").value = a.responsable || QUIEN.nombre || "";
+  $("#cQuien").value = a.responsable || SESION.nombre || "";
   $("#cObs").value = "";
   $("#cierreContexto").textContent = `${t.titulo} — ${area}`;
   $("#dlgCierre").showModal();
@@ -1519,8 +1685,9 @@ function actualizarCampoDeporte(){
 
 function pintarFilasAreas(preseleccion){
   const cont = $("#filasAreas");
+  const areas = datos.areas.length ? datos.areas : (tablero.areas || []).map(r => r.nombre);
 
-  cont.innerHTML = datos.areas.map(area => {
+  cont.innerHTML = areas.map(area => {
     const previa = preseleccion.find(a => a.area === area);
     const elegida = Boolean(previa);
     return `
@@ -1580,12 +1747,12 @@ function abrirTarea(idTarea, areaSugerida){
   const t = idTarea ? datos.tareas.find(x => x.id === idTarea) : null;
 
   $("#tituloDialogo").textContent = t
-    ? "Editar tarea"
-    : (soyCD() ? "Cargar orden de Comisión Directiva" : "Cargar tarea");
+    ? (soyCD() ? "Corregir el aviso" : "Editar tarea")
+    : (soyCD() ? "Cargar aviso para Gerencia" : "Cargar tarea");
   $("#btnGuardarTarea").textContent = t
-    ? "Guardar cambios"
+    ? (soyCD() ? "Volver a pedir" : "Guardar cambios")
     : (soyCD() ? "Pedir aprobación" : "Guardar tarea");
-  $("#avisoCD").hidden = Boolean(t) || !soyCD();
+  $("#avisoCD").hidden = !soyCD();
   $("#errTitulo").hidden = true;
   $("#errAreas").hidden = true;
 
@@ -1626,7 +1793,6 @@ $("#formTarea").addEventListener("submit", async e => {
     prioridad: $("#fPrioridad").value,
     vence:     $("#fVence").value,
     deporte:   elegidas.some(a => a.area === "Deporte") ? $("#fDeporte").value : "",
-    origen:    soyCD() ? "cd" : "",
     asignaciones: elegidas
   };
 
@@ -1634,9 +1800,11 @@ $("#formTarea").addEventListener("submit", async e => {
   boton.disabled = true;
 
   const ok = editando
-    ? await operar("editarTarea", Object.assign({ id: editando }, carga), "Tarea actualizada")
+    ? await operar("editarTarea", Object.assign({ id: editando }, carga),
+        soyCD() ? "Aviso enviado a Gerencia" : "Tarea actualizada")
     : await operar("crearTarea", carga,
-        elegidas.length > 1 ? `Tarea cargada para ${elegidas.length} áreas` : "Tarea cargada");
+        soyCD() ? "Aviso enviado a Gerencia"
+                : (elegidas.length > 1 ? `Tarea cargada para ${elegidas.length} áreas` : "Tarea cargada"));
 
   boton.disabled = false;
   if (ok) $("#dlgTarea").close();
@@ -1689,9 +1857,134 @@ $("#btnAgregarArea").onclick = async () => {
     avisar("Esa área ya existe");
     return;
   }
-  const ok = await operar("agregarArea", { nombre }, "Área agregada");
+  const ok = await operar("agregarArea", { nombre }, "Área agregada. Ponele una clave desde Claves.");
   if (ok){ campo.value = ""; campo.focus(); pintarAreas(); }
 };
+
+/* ==========================================================================
+   CLAVES — solo Gerencia
+   ========================================================================== */
+
+let listaClaves = [];
+let poniendoClaveA = "";
+
+async function abrirClaves(){
+  try{
+    const r = await API.llamar("claves", {});
+    listaClaves = r.claves;
+    pintarClaves();
+    $("#dlgClaves").showModal();
+  }catch(err){
+    if (sesionVencida(err.message)){ cerrarSesionLocal(); sincronizar(false); }
+    avisar("No se pudieron leer las claves: " + err.message);
+  }
+}
+
+function pintarClaves(){
+  $("#listaClaves").innerHTML = listaClaves.map(c => {
+    const estado = c.tieneClave
+      ? `<span class="area-cuenta con-clave">con clave</span>`
+      : `<span class="area-cuenta sin-clave">sin clave — entra cualquiera</span>`;
+    const sacar = (c.tieneClave && c.rol !== ROL_GERENCIA)
+      ? `<button class="icono peligro" type="button" data-sacar="${escapar(c.rol)}">Sacar</button>`
+      : "";
+    return `
+      <li>
+        <span>${escapar(c.rol)}</span>
+        ${estado}
+        <button class="icono" type="button" data-poner="${escapar(c.rol)}">${c.tieneClave ? "Cambiar" : "Poner clave"}</button>
+        ${sacar}
+      </li>`;
+  }).join("");
+}
+
+$("#listaClaves").addEventListener("click", async e => {
+  const poner = e.target.closest("[data-poner]");
+  if (poner){
+    poniendoClaveA = poner.dataset.poner;
+    $("#tituloClave").textContent = "Clave de " + poniendoClaveA;
+    $("#nClave").value = "";
+    $("#nClave2").value = "";
+    $("#verClave").checked = false;
+    $("#nClave").type = "password";
+    $("#nClave2").type = "password";
+    $("#errClave").hidden = true;
+    $("#dlgClave").showModal();
+    $("#nClave").focus();
+    return;
+  }
+
+  const sacar = e.target.closest("[data-sacar]");
+  if (sacar){
+    const rol = sacar.dataset.sacar;
+    if (!confirm(`Si le sacás la clave a ${rol}, cualquiera que abra el link va a poder entrar ahí. ¿Seguimos?`)) return;
+    await guardarClave(rol, "");
+  }
+});
+
+async function guardarClave(rol, clave){
+  try{
+    const r = await API.llamar("cambiarClave", { rol, clave });
+    listaClaves = r.claves;
+    pintarClaves();
+    avisar(clave ? `Clave de ${rol} actualizada` : `${rol} quedó sin clave`);
+    return true;
+  }catch(err){
+    avisar("No se pudo: " + err.message);
+    return false;
+  }
+}
+
+$("#verClave").addEventListener("change", e => {
+  const tipo = e.target.checked ? "text" : "password";
+  $("#nClave").type = tipo;
+  $("#nClave2").type = tipo;
+});
+
+$("#formClave").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const uno = $("#nClave").value;
+  const dos = $("#nClave2").value;
+  const err = $("#errClave");
+
+  if (uno.length < 4){
+    err.textContent = "Poné al menos 4 caracteres.";
+    err.hidden = false;
+    return;
+  }
+  if (uno !== dos){
+    err.textContent = "Las dos no coinciden.";
+    err.hidden = false;
+    $("#nClave2").focus();
+    return;
+  }
+
+  err.hidden = true;
+  const boton = $("#btnGuardarClave");
+  boton.disabled = true;
+
+  const ok = await guardarClave(poniendoClaveA, uno);
+
+  boton.disabled = false;
+  if (ok){
+    $("#nClave").value = "";
+    $("#nClave2").value = "";
+    $("#dlgClave").close();
+
+    // Si Juan se cambió la suya, tiene que volver a entrar.
+    if (poniendoClaveA === ROL_GERENCIA){
+      $("#dlgClaves").close();
+      cerrarSesionLocal();
+      sincronizar(false);
+      avisar("Cambiaste tu clave: volvé a entrar con la nueva.");
+    }
+  }
+});
+
+$("#btnCancelarClave").onclick = () => $("#dlgClave").close();
+$("#btnCerrarClaves").onclick  = () => $("#dlgClaves").close();
+$("#btnClaves").onclick        = abrirClaves;
 
 /* ==========================================================================
    COMPARTIR
@@ -1752,6 +2045,8 @@ $("#btnCerrarAreas").onclick   = () => $("#dlgAreas").close();
 $("#btnImprimir").onclick      = () => window.print();
 $("#btnCopiar").onclick        = copiar;
 $("#btnActualizar").onclick    = () => sincronizar(true);
+$("#btnGerencia").onclick      = () => pedirIngreso(ROL_GERENCIA);
+$("#btnCD").onclick            = () => pedirIngreso(ROL_CD);
 
 $("#fNuevaArea").addEventListener("keydown", e => {
   if (e.key === "Enter"){ e.preventDefault(); $("#btnAgregarArea").click(); }
@@ -1764,13 +2059,27 @@ $("#busqueda").addEventListener("input", e => {
 
 async function sincronizar(avisando){
   try{
-    datos = await API.llamar("estado", {});
+    if (haySesion()){
+      const r = await API.llamar("estado", {});
+      datos = { areas: r.areas, tareas: r.tareas };
+      tablero = r.tablero;
+    }else{
+      const r = await API.llamar("resumen", {});
+      tablero = r;
+      datos = { areas: r.areas.map(a => a.nombre), tareas: [] };
+    }
     franja("");
     refrescar();
     if (avisando) avisar("Al día");
     return true;
   }catch(err){
+    if (sesionVencida(err.message) && haySesion()){
+      cerrarSesionLocal();
+      franja("Tu sesión venció. Volvé a entrar con tu clave.");
+      return sincronizar(false);
+    }
     franja("Sin conexión con el servidor: " + err.message);
+    refrescar();
     return false;
   }
 }
@@ -1792,14 +2101,11 @@ setInterval(() => {
     return;
   }
 
-  const guardado = leerQuien();
-  if (guardado) QUIEN = guardado;
-
-  const ok = await sincronizar(false);
-  if (!ok) return;
+  const guardada = leerSesionGuardada();
+  if (guardada && guardada.token) SESION = guardada;
 
   pintarSesion();
-  if (!QUIEN.nombre) pedirQuien();
+  await sincronizar(false);
 })();
 </script>
 </body>
