@@ -276,6 +276,23 @@ button,input,select,textarea{font:inherit;color:inherit}
 .meta-vence.hoy{color:var(--curso);font-weight:600}
 .prioridad-alta{color:var(--club);font-weight:600}
 .meta-deporte{color:var(--tinta-tenue)}
+.meta-orden{color:var(--club);font-weight:600}
+.ordenes{
+  border:1px solid var(--club);border-radius:10px;
+  background:var(--club-suave);padding:14px 16px;margin-bottom:20px;
+}
+.ordenes h2{font-size:1rem;margin:0 0 4px}
+.aclaracion{font-size:.85rem;margin:0 0 12px}
+.ordenes .aclaracion{color:var(--tinta-tenue)}
+.orden{
+  background:#fff;border:1px solid var(--linea);border-radius:8px;
+  padding:10px 12px;margin-bottom:8px;
+}
+.orden:last-child{margin-bottom:0}
+.orden-titulo{font-weight:600}
+.orden-datos{color:var(--tinta-tenue);font-size:.85rem;margin-top:2px}
+.orden-acciones{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.orden.rechazada{border-color:var(--club)}
 .icono-area{display:block;color:var(--tinta-tenue);flex:none}
 .cuadro .icono-area{margin:0 auto 8px}
 .cuadro.completo .icono-area{color:var(--ok)}
@@ -524,6 +541,7 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
   </div>
 
   <section id="vistaPortada">
+    <div class="ordenes" id="panelOrdenes" hidden></div>
     <div class="rejilla" id="rejilla"></div>
   </section>
 
@@ -618,6 +636,9 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
           <input type="date" id="fVence">
         </div>
       </div>
+      <p class="aclaracion" id="avisoCD" hidden style="color:var(--club)">
+        Entrás como Comisión Directiva: esto se carga como orden y no llega al área hasta que Gerencia la apruebe.
+      </p>
       <div class="campo" id="campoDeporte" hidden>
         <label for="fDeporte">Deporte</label>
         <select id="fDeporte"></select>
@@ -753,6 +774,16 @@ let datos = { areas: [], tareas: [] };
 let vista = { tipo: "portada", area: null };
 let QUIEN = { nombre: "", rol: "", etiqueta: "" };
 
+// Quien entra con este rol carga órdenes, no tareas comunes.
+const ROL_CD = "Comisión Directiva";
+function soyCD(){ return QUIEN.rol === ROL_CD; }
+function soyGerencia(){ return QUIEN.rol === "Gerencia"; }
+
+// Una orden sin aprobar todavía no existe para las áreas.
+function ordenPendiente(t){ return t.origen === "cd" && t.aprobacion === "pendiente"; }
+function ordenRechazada(t){ return t.origen === "cd" && t.aprobacion === "rechazada"; }
+function tareaVigente(t){ return !ordenPendiente(t) && !ordenRechazada(t); }
+
 const filtros = { estado: "abiertas", texto: "" };
 
 const ESTADOS = {
@@ -805,6 +836,7 @@ function asigVenceHoy(t,a){ return Boolean(t.vence) && a.estado !== "hecha" && t
 
 function deArea(area){
   return datos.tareas
+    .filter(tareaVigente)
     .map(t => ({ t, a: t.asignaciones.find(x => x.area === area) }))
     .filter(par => par.a);
 }
@@ -859,7 +891,7 @@ function pintarSesion(){
 }
 
 function pedirQuien(){
-  const roles = ["Gerencia"].concat(datos.areas);
+  const roles = ["Gerencia", ROL_CD].concat(datos.areas);
   $("#opcionesRol").innerHTML = roles.map((r,i) => `
     <label class="opcion-quien">
       <input type="radio" name="rol" value="${escapar(r)}" ${(QUIEN.rol === r || (!QUIEN.rol && i===0)) ? "checked" : ""}>
@@ -898,9 +930,10 @@ function pintarCabecera(){
 }
 
 function pintarResumen(){
-  const abiertas = datos.tareas.filter(tareaAbierta).length;
-  const paraHoy  = datos.tareas.filter(tareaVenceHoy).length;
-  const vencidas = datos.tareas.filter(tareaVencida).length;
+  const vigentes = datos.tareas.filter(tareaVigente);
+  const abiertas = vigentes.filter(tareaAbierta).length;
+  const paraHoy  = vigentes.filter(tareaVenceHoy).length;
+  const vencidas = vigentes.filter(tareaVencida).length;
   const sinCerrar = datos.tareas
     .reduce((n,t) => n + t.asignaciones.filter(a => a.estado !== "hecha").length, 0);
 
@@ -926,6 +959,78 @@ function pintarResumen(){
 /* ==========================================================================
    PORTADA
    ========================================================================== */
+
+function pintarOrdenes(){
+  const panel = $("#panelOrdenes");
+  const pendientes = datos.tareas.filter(ordenPendiente);
+  const rechazadas = datos.tareas.filter(ordenRechazada);
+
+  if (!pendientes.length && !rechazadas.length){ panel.hidden = true; return; }
+  panel.hidden = false;
+
+  const puedeDecidir = soyGerencia();
+
+  const trozoPendiente = t => {
+    const areas = t.asignaciones.map(a => a.area).join(", ");
+    const acciones = puedeDecidir
+      ? `<div class="orden-acciones">
+           <button class="boton boton-principal" data-aprobar="${escapar(t.id)}">Aprobar y bajar al área</button>
+           <button class="boton" data-rechazar="${escapar(t.id)}">Rechazar</button>
+         </div>`
+      : `<div class="orden-datos">Esperando que Gerencia la apruebe.</div>`;
+    return `
+      <div class="orden">
+        <div class="orden-titulo">${escapar(t.titulo)}</div>
+        <div class="orden-datos">Para ${escapar(areas)} · la cargó ${escapar(t.creadaPor)}</div>
+        ${t.detalle ? `<div class="orden-datos">${escapar(t.detalle)}</div>` : ""}
+        ${acciones}
+      </div>`;
+  };
+
+  const trozoRechazada = t => `
+    <div class="orden rechazada">
+      <div class="orden-titulo">${escapar(t.titulo)}</div>
+      <div class="orden-datos">Rechazada por ${escapar(t.aprob ? t.aprob.por : "")}: ${escapar(t.aprob ? t.aprob.observaciones : "")}</div>
+      <div class="orden-acciones">
+        <button class="boton" data-editar-orden="${escapar(t.id)}">Corregir y volver a pedir</button>
+        <button class="boton" data-descartar-orden="${escapar(t.id)}">Descartar</button>
+      </div>
+    </div>`;
+
+  panel.innerHTML =
+    `<h2>Órdenes de Comisión Directiva</h2>
+     <p class="aclaracion">Todavía no llegaron a las áreas. Bajan cuando Gerencia las aprueba.</p>`
+    + pendientes.map(trozoPendiente).join("")
+    + rechazadas.map(trozoRechazada).join("");
+}
+
+$("#panelOrdenes").addEventListener("click", async e => {
+  const ap = e.target.closest("[data-aprobar]");
+  if (ap){
+    const obs = prompt("Comentario para el área (opcional):", "");
+    if (obs === null) return;
+    await operar("aprobarOrden", { id: ap.dataset.aprobar, observaciones: obs.trim() }, "Orden aprobada");
+    return;
+  }
+  const re = e.target.closest("[data-rechazar]");
+  if (re){
+    const motivo = prompt("¿Por qué la rechazás? Se le muestra a quien la pidió:", "");
+    if (motivo === null) return;
+    if (!motivo.trim()){ avisar("Hace falta el motivo."); return; }
+    await operar("rechazarOrden", { id: re.dataset.rechazar, observaciones: motivo.trim() }, "Orden rechazada");
+    return;
+  }
+  const ed = e.target.closest("[data-editar-orden]");
+  if (ed){ abrirTarea(ed.dataset.editarOrden); return; }
+
+  const de = e.target.closest("[data-descartar-orden]");
+  if (de){
+    const t = datos.tareas.find(x => x.id === de.dataset.descartarOrden);
+    if (t && confirm(`¿Descartar la orden "${t.titulo}"?`)){
+      await operar("borrarTarea", { id: t.id }, "Orden descartada");
+    }
+  }
+});
 
 function pintarPortada(){
   const rejilla = $("#rejilla");
@@ -1134,6 +1239,7 @@ function filaTarea(t,a,area){
   if (a.responsable) meta.push(`<span class="meta-responsable">${escapar(a.responsable)}</span>`);
   if (t.prioridad === "alta") meta.push(`<span class="prioridad-alta">Prioridad alta</span>`);
   if (t.deporte && area === "Deporte") meta.push(`<span class="meta-deporte">${escapar(t.deporte)}</span>`);
+  if (t.origen === "cd") meta.push(`<span class="meta-orden">Orden de CD</span>`);
   if (t.vence){
     const clase = vencida ? "vencida" : (hoy ? "hoy" : "");
     const texto = vencida ? `Venció el ${fechaLinda(t.vence)}` : (hoy ? "Vence hoy" : `Para el ${fechaLinda(t.vence)}`);
@@ -1258,6 +1364,7 @@ function refrescar(){
   $("#vistaRegistro").hidden = vista.tipo !== "registro";
 
   if (vista.tipo === "portada"){
+    pintarOrdenes();
     pintarPortada();
   }else if (vista.tipo === "area"){
     if (!datos.areas.includes(vista.area)) return volverAPortada();
@@ -1472,8 +1579,13 @@ function abrirTarea(idTarea, areaSugerida){
   editando = idTarea || null;
   const t = idTarea ? datos.tareas.find(x => x.id === idTarea) : null;
 
-  $("#tituloDialogo").textContent = t ? "Editar tarea" : "Cargar tarea";
-  $("#btnGuardarTarea").textContent = t ? "Guardar cambios" : "Guardar tarea";
+  $("#tituloDialogo").textContent = t
+    ? "Editar tarea"
+    : (soyCD() ? "Cargar orden de Comisión Directiva" : "Cargar tarea");
+  $("#btnGuardarTarea").textContent = t
+    ? "Guardar cambios"
+    : (soyCD() ? "Pedir aprobación" : "Guardar tarea");
+  $("#avisoCD").hidden = Boolean(t) || !soyCD();
   $("#errTitulo").hidden = true;
   $("#errAreas").hidden = true;
 
@@ -1514,6 +1626,7 @@ $("#formTarea").addEventListener("submit", async e => {
     prioridad: $("#fPrioridad").value,
     vence:     $("#fVence").value,
     deporte:   elegidas.some(a => a.area === "Deporte") ? $("#fDeporte").value : "",
+    origen:    soyCD() ? "cd" : "",
     asignaciones: elegidas
   };
 
