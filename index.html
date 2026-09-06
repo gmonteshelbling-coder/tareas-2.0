@@ -14,7 +14,7 @@
    ========================================================================== */
 
 // URL de la aplicación web de Apps Script. Termina en /exec.
-const API_URL = "https://script.google.com/macros/s/AKfycbzy4V5HTArzCydW0ePm2oPIuxvDIWTlF-cfzPeo_UnCuJ71t-bXhH3_ItKJ60aYi2fgjw/exec";
+const API_URL = "";
 
 // Si pusiste CLAVE_COMPARTIDA en el Codigo.gs, repetila acá igual.
 const CLAVE = "";
@@ -23,6 +23,10 @@ const CLAVE = "";
 const ESCUDO = "escudo.png";
 
 const INSTITUCION = "Club Independiente de Tandil";
+
+// Deportes que se pueden elegir cuando la tarea va al area Deporte.
+// Si cambias esta lista, cambiala igual en el Codigo.gs.
+const DEPORTES = ["Básquet","Hockey","Fútbol","Tenis","Vóley","Newcom","Handball","Running","Otros"];
 
 // Las fotos se achican antes de subirse a Drive.
 const FOTO_LADO_MAX = 1400;
@@ -271,6 +275,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .meta-vence.vencida{color:var(--club);font-weight:600}
 .meta-vence.hoy{color:var(--curso);font-weight:600}
 .prioridad-alta{color:var(--club);font-weight:600}
+.meta-deporte{color:var(--tinta-tenue)}
+.icono-area{display:block;color:var(--tinta-tenue);flex:none}
+.cuadro .icono-area{margin:0 auto 8px}
+.cuadro.completo .icono-area{color:var(--ok)}
+.fila-area .icono-area{margin-right:2px}
 
 .compartida{
   display:inline-flex;align-items:center;
@@ -609,6 +618,10 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
           <input type="date" id="fVence">
         </div>
       </div>
+      <div class="campo" id="campoDeporte" hidden>
+        <label for="fDeporte">Deporte</label>
+        <select id="fDeporte"></select>
+      </div>
     </div>
     <div class="dialogo-pie">
       <button type="button" class="boton" id="btnCancelarTarea">Cancelar</button>
@@ -937,6 +950,7 @@ function pintarPortada(){
     if (!total){
       return `
         <button class="cuadro vacio-area" data-area="${escapar(area)}" disabled>
+          ${iconoArea(area,24)}
           <h3 class="cuadro-nombre">${escapar(area)}</h3>
           <p class="cuadro-sin">Sin tareas asignadas</p>
         </button>`;
@@ -959,6 +973,7 @@ function pintarPortada(){
     return `
       <button class="${clases.join(" ")}" data-area="${escapar(area)}"
               aria-label="${escapar(area)}: ${pendientes} pendientes de ${total}">
+        ${iconoArea(area,24)}
         <h3 class="cuadro-nombre">${escapar(area)}</h3>
         ${cifra}
         ${alerta}
@@ -1028,6 +1043,38 @@ function pasaFiltro(t,a){
   return true;
 }
 
+
+/* =====================================================================
+   ICONOS DE LAS AREAS
+   Cada uno es un dibujo de linea de 48x48. Toman el color del texto.
+   Si agregas un area nueva desde la app, usa el generico (tres puntos).
+   ===================================================================== */
+const ICONOS = {
+  "Portería":
+    '<rect x="14" y="6" width="20" height="36" rx="2"/><circle cx="30" cy="24" r="1.8"/>',
+  "Campo y mantenimiento":
+    '<rect x="14" y="8" width="20" height="9" rx="2"/><path d="M24 17 V40" stroke-width="3"/>',
+  "Deporte":
+    '<circle cx="24" cy="24" r="17"/><path d="M24 7 V41"/><path d="M8 15 Q24 26 40 15"/><path d="M8 33 Q24 22 40 33"/>',
+  "Comunicación":
+    '<rect x="7" y="11" width="34" height="23" rx="6"/><path d="M17 34 L14 42 L26 34"/>',
+  "Administración":
+    '<rect x="12" y="6" width="24" height="36" rx="3"/><path d="M18 17 H30 M18 24 H30 M18 31 H30"/>',
+  "Tesorería":
+    '<circle cx="24" cy="24" r="16"/><path d="M24 13 V35"/><path d="M29 18 Q24 15 20 18 Q16 22 24 24 Q32 26 28 30 Q24 33 19 30"/>',
+  "Generales":
+    '<circle cx="14" cy="24" r="2.6" fill="currentColor"/><circle cx="24" cy="24" r="2.6" fill="currentColor"/><circle cx="34" cy="24" r="2.6" fill="currentColor"/>'
+};
+
+const ICONO_GENERICO = ICONOS["Generales"];
+
+function iconoArea(area, tam){
+  const dibujo = ICONOS[area] || ICONO_GENERICO;
+  return `<svg class="icono-area" width="${tam}" height="${tam}" viewBox="0 0 48 48" `
+       + `fill="none" stroke="currentColor" stroke-width="2" `
+       + `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${dibujo}</svg>`;
+}
+
 const ORDEN_PRIORIDAD = { alta:0, media:1, baja:2 };
 
 function ordenarPares(x,y){
@@ -1086,6 +1133,7 @@ function filaTarea(t,a,area){
   const meta = [];
   if (a.responsable) meta.push(`<span class="meta-responsable">${escapar(a.responsable)}</span>`);
   if (t.prioridad === "alta") meta.push(`<span class="prioridad-alta">Prioridad alta</span>`);
+  if (t.deporte && area === "Deporte") meta.push(`<span class="meta-deporte">${escapar(t.deporte)}</span>`);
   if (t.vence){
     const clase = vencida ? "vencida" : (hoy ? "hoy" : "");
     const texto = vencida ? `Venció el ${fechaLinda(t.vence)}` : (hoy ? "Vence hoy" : `Para el ${fechaLinda(t.vence)}`);
@@ -1355,6 +1403,13 @@ $("#dlgCierre").addEventListener("cancel", () => {
 
 let editando = null;
 
+// El desplegable de deportes solo aparece si la tarea va al area Deporte.
+function actualizarCampoDeporte(){
+  const hay = areasElegidas().some(a => a.area === "Deporte");
+  const campo = $("#campoDeporte");
+  if (campo) campo.hidden = !hay;
+}
+
 function pintarFilasAreas(preseleccion){
   const cont = $("#filasAreas");
 
@@ -1365,6 +1420,7 @@ function pintarFilasAreas(preseleccion){
       <div class="fila-area ${elegida ? "elegida" : ""}" data-area="${escapar(area)}">
         <label>
           <input type="checkbox" ${elegida ? "checked" : ""}>
+          ${iconoArea(area,18)}
           <span>${escapar(area)}</span>
         </label>
         <input type="text" class="responsable" maxlength="60" autocomplete="off"
@@ -1378,6 +1434,7 @@ function pintarFilasAreas(preseleccion){
       const fila = cb.closest(".fila-area");
       fila.classList.toggle("elegida", cb.checked);
       fila.querySelector(".responsable").hidden = !cb.checked;
+      actualizarCampoDeporte();
       actualizarCuentaAreas();
     });
   });
@@ -1425,12 +1482,17 @@ function abrirTarea(idTarea, areaSugerida){
   $("#fPrioridad").value = t ? t.prioridad : "media";
   $("#fVence").value     = t ? t.vence : "";
 
+  $("#fDeporte").innerHTML = '<option value="">Sin especificar</option>'
+    + DEPORTES.map(d => `<option value="${escapar(d)}">${escapar(d)}</option>`).join("");
+  $("#fDeporte").value = (t && t.deporte) ? t.deporte : "";
+
   let preseleccion = [];
   if (t) preseleccion = t.asignaciones;
   else if (areaSugerida) preseleccion = [{ area: areaSugerida, responsable: "" }];
   else if (vista.tipo === "area") preseleccion = [{ area: vista.area, responsable: "" }];
 
   pintarFilasAreas(preseleccion);
+  actualizarCampoDeporte();
   $("#dlgTarea").showModal();
   $("#fTitulo").focus();
 }
@@ -1451,6 +1513,7 @@ $("#formTarea").addEventListener("submit", async e => {
     detalle:   $("#fDetalle").value.trim(),
     prioridad: $("#fPrioridad").value,
     vence:     $("#fVence").value,
+    deporte:   elegidas.some(a => a.area === "Deporte") ? $("#fDeporte").value : "",
     asignaciones: elegidas
   };
 
