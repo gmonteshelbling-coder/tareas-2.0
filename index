@@ -14,7 +14,7 @@
    ========================================================================== */
 
 // URL de la aplicación web de Apps Script. Termina en /exec.
-const API_URL = "const API_URL = "https://script.google.com/macros/s/AKfy.../exec";
+const API_URL = "const API_URL = "https://script.google.com/macros/s/AKfycbzy4V5HTArzCydW0ePm2oPIuxvDIWTlF-cfzPeo_UnCuJ71t-bXhH3_ItKJ60aYi2fgjw/exec";
 
 // Si pusiste CLAVE_COMPARTIDA en el Codigo.gs, repetila acá igual.
 const CLAVE = "";
