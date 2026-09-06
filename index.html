@@ -6,7 +6,7 @@
 <title>Tareas 2.0 — Club Independiente de Tandil</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@500;600&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
 
 <script>
 /* ==========================================================================
@@ -203,6 +203,26 @@ button,input,select,textarea{font:inherit;color:inherit}
 .barrita{height:4px;background:var(--linea);border-radius:2px;overflow:hidden;margin:0 -16px}
 .barrita span{display:block;height:100%;background:var(--ok)}
 .cuadro-sin{color:var(--tinta-tenue);font-size:14px;margin:0}
+
+/* ---------- Firma ---------- */
+
+.firma{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  margin:38px auto 0;padding-top:22px;
+  border-top:1px solid var(--linea);max-width:420px;
+}
+
+.firma-icono{width:40px;height:auto;flex:none}
+.firma-marca{width:148px;height:auto;flex:none}
+.firma-marca text{font-family:"Poppins",Arial,sans-serif}
+
+@media (max-width:720px){
+  .firma{gap:11px;margin-top:30px}
+  .firma-icono{width:34px}
+  .firma-marca{width:124px}
+}
+
+@media print{ .firma{border-top-color:#000} }
 
 /* ---------- Migas ---------- */
 
@@ -544,6 +564,19 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
   <section id="vistaPortada">
     <div class="ordenes" id="panelAvisos" hidden></div>
     <div class="rejilla" id="rejilla"></div>
+
+    <footer class="firma">
+      <svg class="firma-icono" xmlns="http://www.w3.org/2000/svg" viewBox="67 25 122 202" role="img"><title>Soluciones a Medida</title><path d="M 162.6 66 A 40 40 0 1 0 128 126 A 40 40 0 1 1 93.4 186" fill="none" stroke="#1B6E7D" stroke-width="26"/><path d="M 162.6 66 A 40 40 0 1 0 128 126 A 40 40 0 1 1 93.4 186" fill="none" stroke="#F6F2E6" stroke-width="20"/><path d="M 114 112 L 114 138 L 128 126 Z" fill="#14606D"/><path d="M 142 114 L 142 140 L 128 126 Z" fill="#14606D"/><line x1="151.4" y1="72.5" x2="173.9" y2="59.5" stroke="#1B6E7D" stroke-width="3"/><line x1="104.6" y1="179.5" x2="82.1" y2="192.5" stroke="#1B6E7D" stroke-width="3"/><g stroke="#1B6E7D" stroke-width="4" stroke-linecap="round"><line x1="160.2" y1="47.7" x2="155" y2="53.8"/><line x1="128" y1="36" x2="128" y2="44"/><line x1="95.8" y1="47.7" x2="101" y2="53.8"/><line x1="78.7" y1="77.3" x2="86.6" y2="78.7"/><line x1="84.7" y1="111" x2="91.6" y2="107"/><line x1="171.3" y1="141" x2="164.4" y2="145"/><line x1="177.2" y1="174.7" x2="169.4" y2="173.3"/><line x1="160.2" y1="204.3" x2="155" y2="198.2"/><line x1="128" y1="216" x2="128" y2="208"/><line x1="95.8" y1="204.3" x2="101" y2="198.2"/></g><line x1="174.8" y1="59" x2="150.5" y2="73" stroke="#D98324" stroke-width="8" stroke-linecap="round"/></svg>
+
+      <svg class="firma-marca" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 64" role="img" aria-label="Soluciones a Medida">
+        <text x="66" y="20" text-anchor="middle" font-size="20" font-weight="500" letter-spacing="-0.6" fill="#1B6E7D">soluciones</text>
+        <text x="63.8" y="44" text-anchor="middle" font-size="20" font-weight="400" letter-spacing="4.5" fill="#152226">a medida</text>
+        <rect x="0" y="52" width="132" height="2.5" fill="#D98324"/>
+        <rect x="32" y="52" width="2.5" height="8" fill="#D98324"/>
+        <rect x="64.75" y="52" width="2.5" height="8" fill="#D98324"/>
+        <rect x="97.5" y="52" width="2.5" height="8" fill="#D98324"/>
+      </svg>
+    </footer>
   </section>
 
   <section id="vistaArea" hidden>
