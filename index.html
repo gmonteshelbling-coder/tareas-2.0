@@ -318,6 +318,28 @@ button,input,select,textarea{font:inherit;color:inherit}
 .orden-datos{color:var(--tinta-tenue);font-size:.85rem;margin-top:2px}
 .orden-acciones{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .orden.rechazada{border-color:var(--club)}
+.orden-etiqueta{
+  display:inline-flex;align-items:center;gap:5px;margin-bottom:4px;
+  font-family:"Archivo Narrow",Arial,sans-serif;font-size:12px;font-weight:600;
+  color:var(--club);letter-spacing:.02em;
+}
+.orden-etiqueta .icono-area{color:var(--club)}
+.orden-cuerpo{display:flex;gap:12px;align-items:flex-start}
+.orden-cuerpo > div:first-child{flex:1;min-width:0}
+.orden-cuenta{
+  display:inline-block;min-width:22px;padding:0 7px;margin-left:6px;
+  border-radius:100px;background:var(--club);color:#fff;
+  font-size:12.5px;text-align:center;vertical-align:2px;
+}
+
+/* Mis pedidos (vista del área) */
+.mis-pedidos{border-color:var(--linea-fuerte);background:var(--hoja)}
+.mis-pedidos .orden{background:#FAFBFC}
+.estado-pedido{font-size:12.5px;font-weight:600}
+.estado-pedido.pendiente{color:var(--curso)}
+.estado-pedido.aprobada{color:var(--ok)}
+.estado-pedido.resuelta{color:var(--ok)}
+.estado-pedido.rechazada{color:var(--club)}
 
 .icono-area{display:block;color:var(--tinta-tenue);flex:none}
 .cuadro .icono-area{margin:0 auto 8px}
@@ -550,6 +572,7 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
 
   <div class="barra">
     <button class="boton boton-principal" id="btnNueva" hidden>Cargar tarea</button>
+    <button class="boton boton-principal" id="btnPedido" hidden>Pedido a Gerencia</button>
     <button class="boton" id="btnAreas" hidden>Editar áreas</button>
     <button class="boton" id="btnClaves" hidden>Claves</button>
     <button class="boton" id="btnRegistro" hidden>Registro</button>
@@ -585,6 +608,7 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
       <h2 id="areaTitulo"></h2>
       <span class="area-cuenta" id="areaCuenta"></span>
     </div>
+    <div class="ordenes mis-pedidos" id="panelPedidos" hidden></div>
     <div class="filtros">
       <div class="filtro-grupo" id="filtroEstado"><span class="filtro-titulo">Estado</span></div>
       <input type="search" class="busqueda" id="busqueda" placeholder="Buscar tarea o responsable" aria-label="Buscar tarea o responsable">
@@ -675,6 +699,7 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
       <p class="aclaracion" id="avisoCD" hidden style="color:var(--club)">
         Entrás como Comisión Directiva: esto se carga como aviso y no llega al área hasta que Gerencia lo apruebe.
       </p>
+      <p class="aclaracion" id="avisoPedido" hidden style="color:var(--club)"></p>
       <div class="campo" id="campoDeporte" hidden>
         <label for="fDeporte">Deporte</label>
         <select id="fDeporte"></select>
@@ -788,6 +813,42 @@ dialog::backdrop{background:rgba(25,29,33,.45)}
   </form>
 </dialog>
 
+<!-- Pedido de un área a Gerencia -->
+<dialog id="dlgPedido">
+  <form id="formPedido">
+    <div class="dialogo-cabecera">
+      <h2>Pedido a Gerencia</h2>
+      <p id="pedidoContexto">Le llega a Juan en su bandeja. Vas a ver la respuesta en "Mis pedidos".</p>
+    </div>
+    <div class="dialogo-cuerpo">
+      <div class="campo">
+        <label for="pTitulo">Qué necesitás</label>
+        <input type="text" id="pTitulo" maxlength="140" autocomplete="off" placeholder="Ej: Candados nuevos para los vestuarios">
+        <div class="error" id="errPTitulo" hidden>Escribí qué necesitás.</div>
+      </div>
+      <div class="campo">
+        <label for="pDetalle">Detalle (opcional)</label>
+        <textarea id="pDetalle" maxlength="800" placeholder="Para cuándo, cuántos, por qué…"></textarea>
+      </div>
+      <div class="campo">
+        <label for="pFoto">Foto (opcional)</label>
+        <div class="zona-foto">
+          <img class="previa" id="pPrevia" alt="Foto adjunta" hidden>
+          <div>
+            <input type="file" id="pFoto" accept="image/*" capture="environment">
+            <p class="pista" id="pPeso">Sirve para mostrar qué está roto o qué hace falta.</p>
+          </div>
+          <button type="button" class="boton boton-tenue" id="btnQuitarFotoPedido" hidden>Quitar foto</button>
+        </div>
+      </div>
+    </div>
+    <div class="dialogo-pie">
+      <button type="button" class="boton" id="btnCancelarPedido">Cancelar</button>
+      <button type="submit" class="boton boton-principal" id="btnEnviarPedido">Enviar pedido</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlgFoto">
   <img id="fotoGrande" alt="Foto de la tarea cerrada">
   <div class="dialogo-pie">
@@ -871,7 +932,14 @@ function puedoMover(area){ return soyGerencia() || SESION.rol === area; }
 // Un aviso de la CD sin aprobar todavía no existe para las áreas.
 function avisoPendiente(t){ return t.origen === "cd" && t.aprobacion === "pendiente"; }
 function avisoRechazado(t){ return t.origen === "cd" && t.aprobacion === "rechazada"; }
-function tareaVigente(t){ return !avisoPendiente(t) && !avisoRechazado(t); }
+function pedidoPendiente(t){ return t.origen === "pedido" && t.aprobacion === "pendiente"; }
+function soyArea(){ return haySesion() && !soyGerencia() && !soyCD(); }
+
+// Igual que en el backend: avisos y pedidos son tarea recién cuando Gerencia los aprueba.
+function tareaVigente(t){
+  if (t.origen === "cd" || t.origen === "pedido") return t.aprobacion === "aprobada";
+  return true;
+}
 
 const filtros = { estado: "abiertas", texto: "" };
 
@@ -1117,18 +1185,28 @@ function aplicarPermisos(){
   $("#btnImprimir").hidden   = !haySesion();
   $("#btnGerencia").hidden   = soyGerencia();
   $("#btnCD").hidden         = soyCD();
+  $("#btnPedido").hidden     = !soyArea();
 }
 
 /* ==========================================================================
-   AVISOS DE LA COMISIÓN DIRECTIVA
+   BANDEJA: AVISOS DE LA CD Y PEDIDOS DE LAS ÁREAS
    ========================================================================== */
+
+function miniaturaPedido(t){
+  return t.pedidoFotoId
+    ? `<img class="cierre-foto" alt="Foto del pedido" data-foto-id="${escapar(t.pedidoFotoId)}">`
+    : "";
+}
 
 function pintarAvisos(){
   const panel = $("#panelAvisos");
 
   if (!(soyGerencia() || soyCD())){ panel.hidden = true; return; }
 
-  const pendientes = datos.tareas.filter(avisoPendiente);
+  // Juan ve todo lo que espera respuesta junto, del más viejo al más nuevo.
+  const pendientes = datos.tareas
+    .filter(t => avisoPendiente(t) || (soyGerencia() && pedidoPendiente(t)))
+    .sort((x,y) => x.creada - y.creada);
   const rechazados = datos.tareas.filter(avisoRechazado);
 
   if (!pendientes.length && !rechazados.length){ panel.hidden = true; return; }
@@ -1136,7 +1214,7 @@ function pintarAvisos(){
 
   const puedeDecidir = soyGerencia();
 
-  const trozoPendiente = t => {
+  const trozoAviso = t => {
     const areas = t.asignaciones.map(a => a.area).join(", ");
     const acciones = puedeDecidir
       ? `<div class="orden-acciones">
@@ -1146,12 +1224,31 @@ function pintarAvisos(){
       : `<div class="orden-datos">Esperando que Gerencia lo apruebe.</div>`;
     return `
       <div class="orden">
+        ${puedeDecidir ? `<div class="orden-etiqueta">Aviso de la CD</div>` : ""}
         <div class="orden-titulo">${escapar(t.titulo)}</div>
         <div class="orden-datos">Para ${escapar(areas)} · lo cargó ${escapar(t.creadaPor)}</div>
         ${t.detalle ? `<div class="orden-datos">${escapar(t.detalle)}</div>` : ""}
         ${acciones}
       </div>`;
   };
+
+  const trozoPedido = t => `
+    <div class="orden">
+      <div class="orden-etiqueta">${iconoArea(t.pedidoDe,14)} Pedido de ${escapar(t.pedidoDe)}</div>
+      <div class="orden-cuerpo">
+        <div>
+          <div class="orden-titulo">${escapar(t.titulo)}</div>
+          <div class="orden-datos">Lo pidió ${escapar(t.creadaPor)} · ${escapar(selloLindo(t.creada))}</div>
+          ${t.detalle ? `<div class="orden-datos">${escapar(t.detalle)}</div>` : ""}
+        </div>
+        ${miniaturaPedido(t)}
+      </div>
+      <div class="orden-acciones">
+        <button class="boton boton-principal" data-convertir="${escapar(t.id)}">Convertir en tarea</button>
+        <button class="boton" data-resolver="${escapar(t.id)}">Resuelto</button>
+        <button class="boton" data-rechazar-pedido="${escapar(t.id)}">Rechazar</button>
+      </div>
+    </div>`;
 
   const trozoRechazado = t => `
     <div class="orden rechazada">
@@ -1163,18 +1260,30 @@ function pintarAvisos(){
       </div>` : ""}
     </div>`;
 
+  const titulo = puedeDecidir
+    ? `Avisos y pedidos${pendientes.length ? `<span class="orden-cuenta">${pendientes.length}</span>` : ""}`
+    : "Avisos de la Comisión Directiva";
+
   const bajada = puedeDecidir
-    ? "Los cargó la Comisión Directiva. Todavía no llegaron a las áreas: bajan cuando los aprobás."
+    ? "Los avisos de la CD bajan al área cuando los aprobás. Los pedidos de las áreas los convertís en tarea, los das por resueltos o los rechazás: el área ve tu respuesta."
     : "Todavía no llegaron a las áreas. Bajan cuando Gerencia los aprueba.";
 
   panel.innerHTML =
-    `<h2>Avisos de la Comisión Directiva</h2>
+    `<h2>${titulo}</h2>
      <p class="aclaracion">${bajada}</p>`
-    + pendientes.map(trozoPendiente).join("")
+    + pendientes.map(t => t.origen === "pedido" ? trozoPedido(t) : trozoAviso(t)).join("")
     + rechazados.map(trozoRechazado).join("");
 }
 
+function agrandarFoto(e){
+  const foto = e.target.closest("img[data-foto-id]");
+  if (foto && foto.src){ $("#fotoGrande").src = foto.src; $("#dlgFoto").showModal(); return true; }
+  return false;
+}
+
 $("#panelAvisos").addEventListener("click", async e => {
+  if (agrandarFoto(e)) return;
+
   const ap = e.target.closest("[data-aprobar]");
   if (ap){
     const obs = prompt("Comentario para el área (opcional):", "");
@@ -1192,6 +1301,30 @@ $("#panelAvisos").addEventListener("click", async e => {
     return;
   }
 
+  const cv = e.target.closest("[data-convertir]");
+  if (cv){ abrirConversion(cv.dataset.convertir); return; }
+
+  const rs = e.target.closest("[data-resolver]");
+  if (rs){
+    const t = datos.tareas.find(x => x.id === rs.dataset.resolver);
+    if (!t) return;
+    const resp = prompt(`¿Qué le contestás a ${t.pedidoDe}? (opcional)\nEj: "Ya los compré, están en secretaría"`, "");
+    if (resp === null) return;
+    await operar("resolverPedido", { id: t.id, observaciones: resp.trim() }, "Pedido resuelto");
+    return;
+  }
+
+  const rp = e.target.closest("[data-rechazar-pedido]");
+  if (rp){
+    const t = datos.tareas.find(x => x.id === rp.dataset.rechazarPedido);
+    if (!t) return;
+    const motivo = prompt(`¿Por qué lo rechazás? Se le muestra a ${t.pedidoDe}:`, "");
+    if (motivo === null) return;
+    if (!motivo.trim()){ avisar("Hace falta el motivo."); return; }
+    await operar("rechazarPedido", { id: t.id, observaciones: motivo.trim() }, "Pedido rechazado");
+    return;
+  }
+
   const ed = e.target.closest("[data-editar-aviso]");
   if (ed){ abrirTarea(ed.dataset.editarAviso); return; }
 
@@ -1201,6 +1334,151 @@ $("#panelAvisos").addEventListener("click", async e => {
     if (t && confirm(`¿Descartar el aviso "${t.titulo}"?`)){
       await operar("borrarTarea", { id: t.id }, "Aviso descartado");
     }
+  }
+});
+
+/* ==========================================================================
+   MIS PEDIDOS — lo que ve el área de lo que le pidió a Gerencia
+   ========================================================================== */
+
+const DIAS_PEDIDOS = 30; // los respondidos se muestran un mes y después se esconden
+
+function misPedidos(){
+  const limite = Date.now() - DIAS_PEDIDOS * 86400000;
+  return datos.tareas
+    .filter(t => t.origen === "pedido" && t.pedidoDe === SESION.rol)
+    .filter(t => t.aprobacion === "pendiente" || (t.aprob && t.aprob.cuando >= limite))
+    .sort((x,y) => {
+      const px = x.aprobacion === "pendiente", py = y.aprobacion === "pendiente";
+      if (px !== py) return px ? -1 : 1;
+      return ((y.aprob && y.aprob.cuando) || y.creada) - ((x.aprob && x.aprob.cuando) || x.creada);
+    });
+}
+
+function estadoPedido(t){
+  const r = t.aprob || { por:"", observaciones:"" };
+  const nota = r.observaciones ? `<div class="orden-datos">“${escapar(r.observaciones)}”</div>` : "";
+
+  if (t.aprobacion === "pendiente"){
+    return `<span class="estado-pedido pendiente">Esperando a Gerencia</span>
+            <div class="orden-acciones"><button class="boton" data-retirar="${escapar(t.id)}">Retirar el pedido</button></div>`;
+  }
+  if (t.aprobacion === "aprobada"){
+    const areas = t.asignaciones.map(a => a.area).join(", ");
+    const total = t.asignaciones.length;
+    const hechas = t.asignaciones.filter(a => a.estado === "hecha").length;
+    const avance = total && hechas === total ? "ya está hecho" : `${hechas} de ${total} área${total===1?"":"s"} lo cerraron`;
+    return `<span class="estado-pedido aprobada">Pasó a tarea para ${escapar(areas)}</span>
+            <div class="orden-datos">${escapar(r.por)} · ${avance}</div>${nota}`;
+  }
+  if (t.aprobacion === "resuelta"){
+    return `<span class="estado-pedido resuelta">Resuelto</span>
+            <div class="orden-datos">${escapar(r.por)} · ${escapar(selloLindo(r.cuando))}</div>${nota}`;
+  }
+  return `<span class="estado-pedido rechazada">Rechazado</span>
+          <div class="orden-datos">${escapar(r.por)} · ${escapar(selloLindo(r.cuando))}</div>${nota}`;
+}
+
+function pintarMisPedidos(){
+  const panel = $("#panelPedidos");
+  if (!soyArea() || vista.area !== SESION.rol){ panel.hidden = true; return; }
+
+  const lista = misPedidos();
+  if (!lista.length){ panel.hidden = true; return; }
+  panel.hidden = false;
+
+  panel.innerHTML =
+    `<h2>Mis pedidos a Gerencia</h2>
+     <p class="aclaracion">Los respondidos quedan acá ${DIAS_PEDIDOS} días.</p>`
+    + lista.map(t => `
+      <div class="orden">
+        <div class="orden-cuerpo">
+          <div>
+            <div class="orden-titulo">${escapar(t.titulo)}</div>
+            <div class="orden-datos">Lo pediste el ${escapar(selloLindo(t.creada))}</div>
+            ${estadoPedido(t)}
+          </div>
+          ${miniaturaPedido(t)}
+        </div>
+      </div>`).join("");
+}
+
+$("#panelPedidos").addEventListener("click", async e => {
+  if (agrandarFoto(e)) return;
+  const b = e.target.closest("[data-retirar]");
+  if (!b) return;
+  const t = datos.tareas.find(x => x.id === b.dataset.retirar);
+  if (t && confirm(`¿Retirar el pedido "${t.titulo}"? Juan deja de verlo.`)){
+    await operar("retirarPedido", { id: t.id }, "Pedido retirado");
+  }
+});
+
+/* ---------- Hacer un pedido ---------- */
+
+let fotoPedido = "";
+
+function limpiarFotoPedido(){
+  fotoPedido = "";
+  $("#pFoto").value = "";
+  $("#pPrevia").hidden = true;
+  $("#pPrevia").removeAttribute("src");
+  $("#btnQuitarFotoPedido").hidden = true;
+  $("#pPeso").textContent = "Sirve para mostrar qué está roto o qué hace falta.";
+}
+
+function abrirPedido(){
+  limpiarFotoPedido();
+  $("#pTitulo").value = "";
+  $("#pDetalle").value = "";
+  $("#errPTitulo").hidden = true;
+  $("#pedidoContexto").textContent = `Desde ${SESION.rol}. Le llega a Juan en su bandeja y vas a ver la respuesta en "Mis pedidos".`;
+  $("#dlgPedido").showModal();
+  $("#pTitulo").focus();
+}
+
+$("#pFoto").addEventListener("change", async e => {
+  const archivo = e.target.files[0];
+  if (!archivo) return;
+  try{
+    fotoPedido = await comprimirImagen(archivo);
+    const kb = Math.round(fotoPedido.length * 0.75 / 1024);
+    $("#pPrevia").src = fotoPedido;
+    $("#pPrevia").hidden = false;
+    $("#btnQuitarFotoPedido").hidden = false;
+    $("#pPeso").textContent = `Se va a subir a Drive: unos ${kb} KB.`;
+  }catch(err){
+    avisar("No se pudo procesar esa imagen");
+    limpiarFotoPedido();
+  }
+});
+
+$("#btnQuitarFotoPedido").onclick = limpiarFotoPedido;
+$("#btnCancelarPedido").onclick = () => { limpiarFotoPedido(); $("#dlgPedido").close(); };
+$("#btnPedido").onclick = abrirPedido;
+
+$("#formPedido").addEventListener("submit", async e => {
+  e.preventDefault();
+  const titulo = $("#pTitulo").value.trim();
+  $("#errPTitulo").hidden = Boolean(titulo);
+  if (!titulo){ $("#pTitulo").focus(); return; }
+
+  const boton = $("#btnEnviarPedido");
+  boton.disabled = true;
+  boton.textContent = fotoPedido ? "Subiendo la foto…" : "Enviando…";
+
+  const ok = await operar("hacerPedido", {
+    titulo,
+    detalle: $("#pDetalle").value.trim(),
+    fotoBase64: fotoPedido
+  }, "Pedido enviado a Gerencia");
+
+  boton.disabled = false;
+  boton.textContent = "Enviar pedido";
+
+  if (ok){
+    limpiarFotoPedido();
+    $("#dlgPedido").close();
+    if (vista.tipo !== "area" || vista.area !== SESION.rol) abrirArea(SESION.rol);
   }
 });
 
@@ -1429,6 +1707,7 @@ function filaTarea(t,a,area){
   if (t.prioridad === "alta") meta.push(`<span class="prioridad-alta">Prioridad alta</span>`);
   if (t.deporte && area === "Deporte") meta.push(`<span class="meta-deporte">${escapar(t.deporte)}</span>`);
   if (t.origen === "cd") meta.push(`<span class="meta-orden">Aviso de la CD</span>`);
+  if (t.origen === "pedido") meta.push(`<span class="meta-orden">Pedido de ${escapar(t.pedidoDe)}</span>`);
   if (t.vence){
     const clase = vencida ? "vencida" : (hoy ? "hoy" : "");
     const texto = vencida ? `Venció el ${fechaLinda(t.vence)}` : (hoy ? "Vence hoy" : `Para el ${fechaLinda(t.vence)}`);
@@ -1490,6 +1769,8 @@ function filaTarea(t,a,area){
 async function cargarFotosVisibles(){
   const nodos = [...document.querySelectorAll("img[data-foto-id]:not([src])")];
   for (const img of nodos){
+    if (img.dataset.cargando) continue;   // ya la está pidiendo otra llamada
+    img.dataset.cargando = "1";
     const idFoto = img.dataset.fotoId;
     if (CACHE_FOTOS.has(idFoto)){ img.src = CACHE_FOTOS.get(idFoto); continue; }
     try{
@@ -1568,8 +1849,11 @@ function refrescar(){
     pintarPortada();
   }else if (vista.tipo === "area"){
     pintarFiltros();
+    pintarMisPedidos();
     pintarListado();
   }
+
+  cargarFotosVisibles();
 }
 
 /* ==========================================================================
@@ -1708,6 +1992,7 @@ $("#dlgCierre").addEventListener("cancel", () => {
    ========================================================================== */
 
 let editando = null;
+let convirtiendo = null;
 
 // El desplegable de deportes solo aparece si la tarea va al area Deporte.
 function actualizarCampoDeporte(){
@@ -1777,6 +2062,8 @@ function marcarTodas(valor){
 
 function abrirTarea(idTarea, areaSugerida){
   editando = idTarea || null;
+  convirtiendo = null;
+  $("#avisoPedido").hidden = true;
   const t = idTarea ? datos.tareas.find(x => x.id === idTarea) : null;
 
   $("#tituloDialogo").textContent = t
@@ -1809,6 +2096,24 @@ function abrirTarea(idTarea, areaSugerida){
   $("#fTitulo").focus();
 }
 
+function abrirConversion(idPedido){
+  const t = datos.tareas.find(x => x.id === idPedido);
+  if (!t) return;
+
+  abrirTarea(null);
+  convirtiendo = idPedido;
+
+  $("#tituloDialogo").textContent = "Convertir el pedido en tarea";
+  $("#btnGuardarTarea").textContent = "Crear tarea";
+  $("#fTitulo").value = t.titulo;
+  $("#fDetalle").value = t.detalle;
+  $("#avisoPedido").textContent =
+    `Pedido de ${t.pedidoDe}. Elegí a qué área va; ${t.pedidoDe} ve en "Mis pedidos" que lo pasaste a tarea y cómo avanza.`;
+  $("#avisoPedido").hidden = false;
+  pintarFilasAreas([]);
+  actualizarCampoDeporte();
+}
+
 $("#formTarea").addEventListener("submit", async e => {
   e.preventDefault();
 
@@ -1832,7 +2137,9 @@ $("#formTarea").addEventListener("submit", async e => {
   const boton = $("#btnGuardarTarea");
   boton.disabled = true;
 
-  const ok = editando
+  const ok = convirtiendo
+    ? await operar("convertirPedido", Object.assign({ id: convirtiendo }, carga), "Pedido convertido en tarea")
+    : editando
     ? await operar("editarTarea", Object.assign({ id: editando }, carga),
         soyCD() ? "Aviso enviado a Gerencia" : "Tarea actualizada")
     : await operar("crearTarea", carga,
@@ -1840,7 +2147,7 @@ $("#formTarea").addEventListener("submit", async e => {
                 : (elegidas.length > 1 ? `Tarea cargada para ${elegidas.length} áreas` : "Tarea cargada"));
 
   boton.disabled = false;
-  if (ok) $("#dlgTarea").close();
+  if (ok){ convirtiendo = null; $("#dlgTarea").close(); }
 });
 
 async function borrarTarea(idTarea){
